@@ -1,0 +1,248 @@
+/* ============================================================
+   WEIGHT TRACKING STYLING — weight-tracking.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+     - the small "Weight" widget that sits on the Dashboard tab (left
+       column, directly under the Weekly Chart): the mini chart, the
+       current weight + trend badge
+     - the full Weight Track tab: the list of every logged weight
+       entry, and the full-size weight chart
+
+   DEPENDS ON SHARED STYLING:
+     The small Dashboard widget uses the shared ".chart-box" base
+     look (shared/theme-and-layout.css). The Weight Track tab's
+     cards use the shared ".card" base look. Both also use shared
+     CSS variables like var(--accent), var(--text-muted).
+
+   WANT TO MOVE THE SMALL WEIGHT WIDGET, NOT RESTYLE IT?
+     Which column it sits in on the Dashboard (under the Weekly
+     Chart) is controlled by index.html's markup and .dash-grid /
+     .dash-col in dashboard/dashboard.css, not here. This file only
+     controls what's INSIDE the widget — e.g. if you want the
+     current-weight number positioned to the left of the chart
+     instead of below it, that's a change to make in THIS file.
+
+   SAFE TO REWORK ALONE?
+   Yes, together with weight-tracking/weight-tracking.js and the
+   marked HTML blocks for the small Weight widget (on the Dashboard
+   tab) and the Weight Track tab in index.html.
+   ============================================================ */
+
+/* ===== small Weight widget (Dashboard) =====
+   Sits directly under the Weekly Chart in the left column, and is
+   sized to match it exactly (same fixed heights at every breakpoint —
+   203px here, then 177px/151px in dashboard.css's media queries,
+   mirroring .chart-box.weekly-chart-box there) rather than stretching
+   to fit a shared row with Calendar the way it used to. The chart
+   above grows/shrinks via its own flex:1 (see .weight-chart-wrap
+   below) to fill whatever height that leaves; the "current weight"
+   row at the bottom stays a fixed height either way. */
+.chart-box.weight-box {
+    padding: 12px 16px 10px;
+    height: 203px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* This box gives the canvas a fixed height via flex:1 (76px) instead of
+   deriving it from an aspect ratio. weight-tracking.js sets
+   maintainAspectRatio:false on the weightChart config for that box
+   height to actually take effect — otherwise Chart.js derives its own
+   height from an aspect ratio and this box just leaves empty space
+   under a chart that's still rendering at the old size. The gradient
+   fill's height in weight-tracking.js (createLinearGradient's last
+   argument) needs to stay in sync with this height too. */
+.chart-box .weight-chart-wrap {
+    position: relative;
+    height: 76px;
+    overflow: hidden;
+    margin-top: 6px;
+    border-radius: 8px;
+    flex: 1;
+}
+.chart-box .weight-chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.weight-display-overlay {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 2px 0;
+    margin-top: 0px;
+}
+.weight-display-overlay .current-weight {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.weight-display-overlay .current-weight .unit {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.weight-display-overlay .trend {
+    font-size: 0.65rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0px 9px;
+    border-radius: 20px;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    height: 20px;
+}
+.weight-display-overlay .trend.up {
+    color: var(--weight-trend-up);
+}
+.weight-display-overlay .trend.down {
+    color: var(--weight-trend-down);
+}
+.weight-display-overlay .trend.neutral {
+    color: var(--weight-trend-neutral);
+}
+.weight-display-overlay .trend .arrow {
+    font-size: 0.65rem;
+}
+
+/* weight row (label + "+ log" button, inside the small widget) */
+.weight-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0px;
+}
+.weight-row .label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.chart-box.weight-box .weight-row button {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 1px 12px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.6rem;
+    transition: 0.2s;
+    box-shadow: 0 3px 10px rgba(45, 122, 255, 0.25);
+}
+/* ===== Weight Track tab (full history + full chart) ===== */
+.weight-tab-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+.weight-tab-content .card {
+    padding: 18px 20px;
+}
+
+.weight-tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.weight-tab-header .title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.weight-tab-header .title i {
+    color: var(--accent);
+}
+.weight-tab-header button {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 6px 20px;
+    border-radius: 40px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.8rem;
+    transition: 0.2s;
+    box-shadow: 0 3px 12px rgba(45, 122, 255, 0.25);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.weight-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+.weight-list .entry {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.9rem;
+    align-items: center;
+}
+.weight-list .entry:last-child {
+    border-bottom: none;
+}
+.weight-list .entry .entry-actions {
+    display: flex;
+    gap: 8px;
+}
+.weight-list .entry .entry-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: 0.15s;
+}
+.weight-tab-content .chart-wrap {
+    height: 240px;
+    max-height: 240px;
+    overflow: hidden;
+    position: relative;
+    border-radius: 12px;
+}
+.weight-tab-content .chart-wrap canvas {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 240px;
+    image-rendering: crisp-edges;
+}
+
+/* responsive — this is the full Weight Track TAB's own layout, not the
+   small Dashboard widget above. The small widget's own reflow (matching
+   .chart-box.weekly-chart-box's height, and its re-order once everything
+   stacks to one column) is handled entirely from dashboard/dashboard.css's
+   media queries (.dash-grid / .dash-col / the order: rules) — nothing
+   about this small widget itself needs its own breakpoint here. */
+@media (max-width: 1000px) {
+    .weight-tab-content {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 600px) {
+    .weight-tab-content .chart-wrap {
+        height: 180px;
+        max-height: 180px;
+    }
+}

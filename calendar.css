@@ -1,0 +1,145 @@
+/* ============================================================
+   CALENDAR WIDGET STYLING — calendar.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+   The little month calendar on the Dashboard tab — the grid of
+   day boxes, the over/under-calorie coloring, and the legend
+   underneath it. The "over-limit macro" part of that legend
+   (#calLegendOverLabel, built in calendar.js) is a 2-column CSS
+   grid supporting up to 4 picks; .centered-last (also applied in
+   calendar.js, only when exactly 3 macros are picked) centers that
+   lone 3rd item under the first row instead of leaving it stranded
+   on the left. Two separate highlight styles live here:
+   .cal-day.today is the outline/glow on whichever date is
+   currently selected/viewed, and .cal-day.real-today is the
+   accent-colored day-number text on the actual current calendar
+   date (the two combine when they're the same day).
+
+   DEPENDS ON SHARED STYLING:
+   Sits inside a box that uses the shared ".chart-box" base look
+   (defined in shared/theme-and-layout.css) plus CSS variables like
+   var(--accent), var(--over), var(--under), var(--glow-color).
+   The box's WIDTH/POSITION — directly under Today's food, at that
+   column's full width — is controlled by .dash-grid / .dash-col in
+   dashboard/dashboard.css, not here.
+
+   SAFE TO REWORK ALONE?
+   Yes — this file plus calendar/calendar.js plus the small marked
+   HTML block for the Calendar widget in index.html is everything
+   needed to redesign how the calendar looks and behaves.
+   ============================================================ */
+
+.cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 6px;
+}
+.cal-day {
+    background: var(--bg-input);
+    border-radius: 10px;
+    text-align: center;
+    padding: 4px 2px;
+    font-size: 0.6rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+    min-height: 34px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.15s ease;
+    position: relative;
+}
+.cal-day .day-num {
+    font-weight: 700;
+    font-size: 0.7rem;
+    color: var(--text-primary);
+}
+.cal-day .day-kcal {
+    font-size: 0.5rem;
+    opacity: 0.8;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.cal-day .carb-marker {
+    font-size: 0.45rem;
+    color: var(--glow-color);
+    font-weight: 700;
+    margin-left: 2px;
+    display: inline-block;
+    vertical-align: top;
+}
+.cal-day.over {
+    background: var(--over);
+    color: var(--over-text);
+    border-color: #f5a3a3;
+}
+.cal-day.under {
+    background: var(--under);
+    color: var(--under-text);
+    border-color: #8fd6a3;
+}
+.cal-day.today {
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 0 2px rgba(45, 122, 255, 0.2);
+}
+.cal-day.real-today .day-num {
+    color: var(--accent);
+    font-weight: 900;
+}
+.cal-legend {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.cal-legend span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.cal-legend .dot {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+}
+.cal-legend .dot.green {
+    background: var(--under);
+    border: 1px solid #8fd6a3;
+}
+.cal-legend .dot.red {
+    background: var(--over);
+    border: 1px solid #f5a3a3;
+}
+.cal-legend .dot.carb-dot {
+    background: var(--glow-color);
+    border-radius: 50%;
+    width: 8px;
+    height: 8px;
+}
+
+/* The "over-limit macro" picks (up to 4, each added dynamically as its own
+   <span> in calendar.js) sit in a 2-column grid instead of the plain
+   flex-wrap row .cal-legend span (above) gives every other legend key, so
+   up to 4 picks always land in two neat rows of two. Specificity here (an
+   ID selector) is what beats .cal-legend span's display:flex for just this
+   one element — the spans generated INSIDE it still get their own
+   dot+label flex layout from that same .cal-legend span rule. */
+#calLegendOverLabel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 14px;
+}
+
+/* Applied by calendar.js only when exactly 3 macros are picked, to the
+   3rd/last one — with 3 items in a 2-column grid the last one would
+   otherwise land alone on the left of its own row, which reads as
+   misaligned rather than "this one just doesn't have a pair". */
+.cal-legend .centered-last {
+    grid-column: 1 / -1;
+    justify-self: center;
+}

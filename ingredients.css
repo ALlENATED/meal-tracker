@@ -1,0 +1,223 @@
+/* ============================================================
+   INGREDIENTS STYLING — ingredients.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+     - the Ingredients tab: the search box, the bulk-action toolbar
+       (select/move/delete), the category sections and the
+       ingredient cards inside them
+     - the "Edit Category" and "New Category" popups (name field +
+       icon picker)
+     - the "Add/Edit Ingredient" popup's category icon picker
+
+   DEPENDS ON SHARED STYLING:
+     Uses the shared ".card" base look and the shared popup/modal
+     chrome (overlay, box, form fields) from
+     shared/theme-and-layout.css, plus shared CSS variables like
+     var(--accent), var(--text-muted), var(--bg-input).
+
+   SAFE TO REWORK ALONE?
+   Yes, together with ingredients/ingredients.js and the marked
+   HTML blocks for the Ingredients tab and its popups in index.html.
+   ============================================================ */
+
+.ingredient-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    margin-bottom: 14px;
+    background: var(--bg-card);
+    backdrop-filter: blur(8px);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    border-radius: 14px;
+    box-shadow: var(--shadow-sm);
+}
+.ingredient-toolbar .selected-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    min-width: 80px;
+}
+.ingredient-toolbar select,
+.ingredient-toolbar button {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+    white-space: nowrap;
+    font-weight: 500;
+    transition: 0.15s;
+}
+.ingredient-toolbar .btn-danger {
+    background: var(--over);
+    color: var(--over-text);
+    border-color: #f5c2c2;
+}
+
+.ingredient-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.ingredient-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    transition: 0.2s;
+    position: relative;
+}
+.ingredient-card .card-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+}
+.ingredient-card .card-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: 0.15s;
+}
+.ingredient-card .name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding-right: 40px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.ingredient-card .name input[type="checkbox"] {
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+.ingredient-card .details {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+}
+.ingredient-card .details span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.ingredient-card .details i {
+    font-size: 0.6rem;
+}
+.ingredient-card .category-badge {
+    font-size: 0.55rem;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    padding: 2px 12px;
+    border-radius: 20px;
+    display: inline-block;
+    margin-bottom: 4px;
+    font-weight: 600;
+}
+
+.ingredient-search {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 40px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+    width: 100%;
+    max-width: 340px;
+    color: var(--text-primary);
+    outline: none;
+    transition: 0.2s;
+}
+.ingredient-search:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 122, 255, 0.1);
+}
+
+.category-section {
+    margin-bottom: 20px;
+}
+.category-section .cat-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.6px;
+    padding: 8px 0 6px 4px;
+    border-bottom: 2px solid var(--border-light);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.category-section .cat-title .cat-icon {
+    font-size: 1rem;
+}
+.category-section .cat-title .cat-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 4px;
+}
+.category-section .cat-title .cat-actions button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 30px;
+    transition: 0.15s;
+}
+.category-section .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 10px;
+}
+
+/* icon picker used in Edit Category / New Category popups */
+.cat-icon-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    background: var(--bg-input);
+    max-height: 150px;
+    overflow-y: auto;
+}
+.cat-icon-picker button {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: 0.1s;
+}
+.cat-icon-picker button.selected {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+}

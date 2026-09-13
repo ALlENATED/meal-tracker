@@ -1,0 +1,206 @@
+/* ============================================================
+   SAVED MEALS STYLING — saved-meals.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+     - the Saved Meals tab: the grid of meal cards (picture, name,
+       item count, calories, instructions preview)
+     - the "Save/Edit Meal" popup: the meal icon picker, the list
+       of items in the meal, the picture upload preview, the
+       "Add ingredient" button
+     - the "Select Ingredient" popup used while building a meal
+
+   DEPENDS ON SHARED STYLING:
+     Uses the shared ".card" base look and the shared popup/modal
+     chrome (overlay, box, form fields) from
+     shared/theme-and-layout.css, plus shared CSS variables like
+     var(--accent), var(--text-muted), var(--bg-input),
+     var(--add-btn-bg)/var(--add-btn-text) (these two are set from
+     the Settings popup, in shared/app-data-and-settings.js).
+
+   SAFE TO REWORK ALONE?
+   Yes, together with saved-meals/saved-meals.js and the marked
+   HTML blocks for the Saved Meals tab and its popups in index.html.
+   ============================================================ */
+
+.saved-meal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+.saved-meal-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    transition: 0.25s ease;
+    display: flex;
+    flex-direction: column;
+}
+.saved-meal-card .meal-pic {
+    width: 100%;
+    aspect-ratio: 16/9;
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--bg-input);
+    margin-bottom: 10px;
+    object-fit: cover;
+    border: 1px solid var(--border-light);
+}
+.saved-meal-card .meal-pic img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.saved-meal-card .meal-pic .no-pic {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    background: var(--bg-input);
+}
+.saved-meal-card .name {
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.saved-meal-card .name .meal-icon {
+    font-size: 1.4rem;
+}
+.saved-meal-card .items {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.saved-meal-card .kcal {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-top: 2px;
+    color: var(--text-secondary);
+}
+.saved-meal-card .instructions {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    border-top: 1px solid var(--border-light);
+    padding-top: 8px;
+    font-style: italic;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.saved-meal-card .instructions:empty {
+    display: none;
+}
+
+/* Save/Edit Meal popup */
+.meal-picture-preview {
+    margin-top: 6px;
+    max-width: 120px;
+    max-height: 120px;
+    border-radius: 16px;
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    display: none;
+}
+.meal-picture-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.meal-picture-preview.show {
+    display: block;
+}
+
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 4px;
+}
+.icon-grid button {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: 0.15s;
+}
+.icon-grid button.selected {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent);
+}
+
+.meal-detail-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.85rem;
+    align-items: center;
+}
+
+.add-ingredient-btn {
+    background: var(--add-btn-bg) !important;
+    border: 1px solid var(--add-btn-border) !important;
+    border-radius: 30px;
+    padding: 6px 18px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    color: var(--add-btn-text) !important;
+    font-weight: 600;
+    transition: 0.15s;
+}
+/* Select Ingredient popup (used while building a meal) */
+.ingredient-selection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: 0.15s;
+    border-radius: 8px;
+}
+.ingredient-selection-item.selected {
+    background: var(--accent-soft);
+    border-color: var(--accent);
+    border-left: 4px solid var(--accent);
+}
+.ingredient-selection-item .is-name {
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+.ingredient-selection-item .is-kcal {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    padding: 2px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* responsive */
+@media (max-width: 600px) {
+    .icon-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+    .saved-meal-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}

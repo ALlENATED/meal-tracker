@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meal & Calorie Tracker</title>
+
+    <!-- ===== PWA: makes this installable as an app on phone/PC, and lets it
+         open offline — manifest.json + service-worker.js (registered from
+         shared/cloud-sync.js) + icons/. See SETUP.md. ===== -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#2d7aff" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Meal Tracker" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+
+    <!-- ===== CLOUD SYNC: Firebase SDK — see shared/cloud-sync.js and SETUP.md.
+         Loaded here (compat build, no bundler needed) so it's ready before
+         shared/cloud-sync.js runs at the bottom of the page. ===== -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+    <script src="shared/firebase-config.js"></script>
+
+    <!--
+    ============================================================
+    FILE MAP — this app is split across multiple files. This page
+    (index.html) only holds the page structure/markup and loads
+    everything else by filename below. There is no build step —
+    just open this file in a browser and it works.
+
+    If you want AI help (e.g. DeepSeek) reworking a specific part
+    of the app, and you're not sure which files to send it, you
+    can paste this whole index.html into a fresh chat, describe
+    the change you want, and ask it to tell you exactly which
+    file(s) from the list below to send in a follow-up message.
+
+    Section                                    Files to send
+    ------------------------------------------------------------
+    Overall colors/theme/fonts, top bar, tabs,  shared/theme-and-layout.css
+    generic card/popup look                     shared/app-data-and-settings.js
+
+    Dashboard tab: calorie ring, macro donut,    dashboard/dashboard.css
+    macro bars, today's food list, weekly        dashboard/dashboard.js
+    chart, the "Add food" popup and "Add for
+    date" popup
+
+    Calendar widget (small, on the Dashboard)    calendar/calendar.css
+                                                  calendar/calendar.js
+
+    Weight widget (small, on the Dashboard) AND  weight-tracking/weight-tracking.css
+    the full Weight Track tab                    weight-tracking/weight-tracking.js
+
+    Ingredients tab, categories, the             ingredients/ingredients.css
+    Add/Edit Ingredient popup                    ingredients/ingredients.js
+
+    Saved Meals tab, the Save/Edit Meal popup    saved-meals/saved-meals.css
+                                                  saved-meals/saved-meals.js
+
+    The actual list of foods (calories/macros)   food-database/ingredient-list.js
+    — no logic, just data
+
+    The "sign in" screen and syncing your data    shared/cloud-sync.js
+    to the cloud (see SETUP.md for the one-time   shared/firebase-config.js
+    setup this needs)
+    ============================================================
+    -->
+
+    <link rel="stylesheet" href="shared/theme-and-layout.css" />
+    <link rel="stylesheet" href="dashboard/dashboard.css" />
+    <link rel="stylesheet" href="calendar/calendar.css" />
+    <link rel="stylesheet" href="weight-tracking/weight-tracking.css" />
+    <link rel="stylesheet" href="ingredients/ingredients.css" />
+    <link rel="stylesheet" href="saved-meals/saved-meals.css" />
+</head>
+<body>
+    <!-- ===== CLOUD SYNC: sign-in gate — shared/cloud-sync.js + shared/theme-and-layout.css.
+         Sits on top of everything (fixed, full-screen) until you're signed
+         in, so your data always ends up tied to your own account instead of
+         just sitting in one browser. CloudSync.init() adds the "show" class
+         once it knows you're NOT signed in; it starts without "show" so the
+         page isn't stuck covered if cloud-sync.js fails to load at all. -->
+    <div class="auth-overlay" id="authOverlay">
+        <div class="modal" style="max-width:380px;">
+            <div class="modal-header">
+                <h2><i class="fas fa-cloud"></i> <span id="authTitle">Sign in</span></h2>
+            </div>
+            <div id="authError" class="auth-error" style="display:none;"></div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="authEmail" autocomplete="email" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="authPassword" autocomplete="current-password" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')CloudSync.submitAuthForm()">
+            </div>
+            <div class="modal-actions" style="justify-content:stretch;">
+                <button class="btn-primary" id="authSubmitBtn" style="width:100%;" onclick="CloudSync.submitAuthForm()">Sign in</button>
+            </div>
+            <p class="auth-toggle">
+                <span id="authToggleText">Don't have an account?</span>
+                <a href="javascript:void(0)" onclick="CloudSync.toggleAuthMode()" id="authToggleLink">Create one</a>
+            </p>
+            <p class="auth-status" id="authStatus"></p>
+        </div>
+    </div>
+    <!-- ===== END CLOUD SYNC: sign-in gate ===== -->
+
+    <div class="app" id="app">
+
+        <!-- ===== SHARED: top bar (theme toggle, accent color, settings) — shared/theme-and-layout.css + shared/app-data-and-settings.js ===== -->
+        <div class="top-bar">
+            <div class="logo">
+                <h1><i class="fas fa-utensils"></i> Meal & Calorie Tracker</h1>
+            </div>
+            <div class="theme-accent-panel">
+                <div class="theme-toggle">
+                    <i class="fas fa-sun" id="lightIcon" onclick="setTheme('light')"></i>
+                    <i class="fas fa-moon" id="darkIcon" onclick="setTheme('dark')"></i>
+                </div>
+                <div class="color-picker-wrap">
+                    <i class="fas fa-palette"></i>
+                    <span class="color-label">Accent</span>
+                    <input type="color" id="accentPicker" value="#2d7aff" onchange="setAccent(this.value)">
+                </div>
+                <!-- ===== CLOUD SYNC: signed-in account + sign-out — shared/cloud-sync.js.
+                     Hidden until CloudSync confirms you're signed in. ===== -->
+                <div class="account-panel" id="accountPanel" style="display:none;">
+                    <span class="account-email" id="accountEmail"></span>
+                    <button class="settings-btn" title="Sign out" onclick="CloudSync.signOut()"><i class="fas fa-right-from-bracket"></i></button>
+                </div>
+                <button class="settings-btn" onclick="openSettingsModal()"><i class="fas fa-cog"></i></button>
+            </div>
+        </div>
+        <!-- ===== END SHARED: top bar ===== -->
+
+        <!-- ===== SHARED: tab bar — shared/theme-and-layout.css + shared/app-data-and-settings.js ===== -->
+        <div class="tabs" id="tabContainer">
+            <button class="tab-btn active" data-tab="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</button>
+            <button class="tab-btn" data-tab="ingredients"><i class="fas fa-carrot"></i> Ingredients</button>
+            <button class="tab-btn" data-tab="saved"><i class="fas fa-bookmark"></i> Saved Meals</button>
+            <button class="tab-btn" data-tab="weight"><i class="fas fa-weight"></i> Weight Track</button>
+        </div>
+        <!-- ===== END SHARED: tab bar ===== -->
+
+        <!-- ===== TAB 1: DASHBOARD — dashboard/dashboard.css + dashboard/dashboard.js
+             (the Calendar block and the small Weight block inside this tab are each
+             owned by their OWN files — see their own markers below) ===== -->
+        <div class="tab-content active" id="tab-dashboard">
+            <div style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; margin-bottom:18px; gap:10px;">
+                <div style="font-size:1.1rem; font-weight:600; color:var(--text-secondary);">
+                    <i class="far fa-calendar-alt"></i> <span id="dashDate">Monday, August 17</span>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button onclick="openDatePickerModal()" style="background:var(--bg-input); border:1px solid var(--border-light); border-radius:40px; padding:6px 18px; cursor:pointer; font-size:0.8rem; font-weight:500; color:var(--text-primary); transition:0.2s;"><i class="fas fa-calendar-plus"></i> Add for date</button>
+                    <button onclick="endDay()" style="background:var(--bg-input); border:1px solid var(--border-light); border-radius:40px; padding:6px 18px; cursor:pointer; font-size:0.8rem; font-weight:500; color:var(--text-primary); transition:0.2s;"><i class="fas fa-sun"></i> End day</button>
+                </div>
+            </div>
+
+            <!-- dash-grid holds two independent columns (.dash-col-left / .dash-col-right),
+                 each a flex column stacking its own widgets, so each column is only ever
+                 as tall as its OWN widgets need — instead of a widget waiting for a
+                 separate grid row to finish first, which could leave a block of dead
+                 space under a shorter neighbor. Left column: Dashboard card, This week,
+                 Weight (Weight is sized to match This week — see .weekly-chart-box /
+                 .weight-box in dashboard.css). Right column: Today's food, Calendar
+                 (Calendar is full column width, matching Today's food's width). See
+                 dash-grid/.dash-col in dashboard.css for the sizing, including how the
+                 stacking ORDER is controlled separately once this collapses to one
+                 column on a narrow window. -->
+            <div class="dash-grid">
+                <div class="dash-col dash-col-left">
+                <!-- LEFT CARD: calorie donut with the macro-breakdown donut nested inside it, macro bars beside it.
+                     "dashboard-card" (in addition to "card") is a hook so dashboard.css can
+                     target just this card for the narrow-window stacking order, without
+                     affecting any other ".card" elsewhere in the app. -->
+                <div class="card dashboard-card">
+                    <div class="card-title"><i class="fas fa-chart-pie" style="color:var(--accent);"></i> Dashboard</div>
+                    <div class="calorie-macro-row">
+                        <div class="donut-section">
+                            <div class="donut-wrapper">
+                                <div class="donut-track"></div>
+                                <!-- width/height attributes here are just the initial pre-JS paint size
+                                     (kept in sync with .donut-wrapper/.donut-track's own current max
+                                     size, and #macroDonutChart's max size, in dashboard.css) — Chart.js
+                                     (responsive:true, maintainAspectRatio:false) takes over sizing from
+                                     its real CSS box immediately after, so these never stay in effect,
+                                     but keeping them current avoids a flash of the wrong size at load. -->
+                                <canvas id="donutChart" width="173" height="173"></canvas>
+                                <canvas id="macroDonutChart" width="123" height="123"></canvas>
+                                <div class="donut-center-text" id="donutCenterText">
+                                    <span class="big" id="calConsumed">0</span>
+                                    <span class="target">of <span id="calTarget">2200</span> kcal</span>
+                                    <span class="left" id="calRemainBadge">2200 left</span>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Vertical macro bars (renamed from macro-horizontal/macro-row —
+                             a genuine rename, not just a restyle: this used to be a column
+                             of 5 horizontal rows, it's now a row of 5 vertical columns, one
+                             per macro, value on top / bar in the middle / name below. Only
+                             this file and the matching CSS in dashboard.css reference these
+                             class names, so nothing else needed updating. Same fill/glow ids
+                             as before (dashboard.js's setBar() just sets height instead of
+                             width now) so nothing else needed updating there either. -->
+                        <div class="macro-vertical-group" id="macroVerticalGroup">
+                            <div class="macro-column">
+                                <span class="macro-values"><span class="num" id="pVal">0</span> <span class="target">/150g</span></span>
+                                <div class="macro-bar-vertical">
+                                    <div class="fill-wrap">
+                                        <div class="fill" id="pBarH" style="height:0%; background:var(--protein-color);"></div>
+                                    </div>
+                                    <div class="fill-glow" id="pGlow"></div>
+                                </div>
+                                <span class="macro-label"><span class="color-dot" style="background:var(--protein-color);" onclick="openMacroColorPicker('protein')"></span><span class="label-text">Protein</span></span>
+                            </div>
+                            <div class="macro-column carbs">
+                                <span class="macro-values"><span class="num" id="cVal">0</span> <span class="target">/220g</span></span>
+                                <div class="macro-bar-vertical">
+                                    <div class="fill-wrap">
+                                        <div class="fill" id="cBarH" style="height:0%; background:var(--carbs-color);"></div>
+                                    </div>
+                                    <div class="fill-glow" id="cGlow"></div>
+                                </div>
+                                <span class="macro-label"><span class="color-dot" style="background:var(--carbs-color);" onclick="openMacroColorPicker('carbs')"></span><span class="label-text">Carbs</span></span>
+                            </div>
+                            <div class="macro-column fat">
+                                <span class="macro-values"><span class="num" id="fVal">0</span> <span class="target">/70g</span></span>
+                                <div class="macro-bar-vertical">
+                                    <div class="fill-wrap">
+                                        <div class="fill" id="fBarH" style="height:0%; background:var(--fat-color);"></div>
+                                    </div>
+                                    <div class="fill-glow" id="fGlow"></div>
+                                </div>
+                                <span class="macro-label"><span class="color-dot" style="background:var(--fat-color);" onclick="openMacroColorPicker('fat')"></span><span class="label-text">Fat</span></span>
+                            </div>
+                            <div class="macro-column">
+                                <span class="macro-values"><span class="num" id="fibVal">0</span> <span class="target">/30g</span></span>
+                                <div class="macro-bar-vertical">
+                                    <div class="fill-wrap">
+                                        <div class="fill" id="fibBarH" style="height:0%; background:var(--fiber-color);"></div>
+                                    </div>
+                                    <div class="fill-glow" id="fibGlow"></div>
+                                </div>
+                                <span class="macro-label"><span class="color-dot" style="background:var(--fiber-color);" onclick="openMacroColorPicker('fiber')"></span><span class="label-text">Fiber</span></span>
+                            </div>
+                            <div class="macro-column">
+                                <span class="macro-values"><span class="num" id="sVal">0</span> <span class="target">/50g</span></span>
+                                <div class="macro-bar-vertical">
+                                    <div class="fill-wrap">
+                                        <div class="fill" id="sBarH" style="height:0%; background:var(--sugar-color);"></div>
+                                    </div>
+                                    <div class="fill-glow" id="sGlow"></div>
+                                </div>
+                                <span class="macro-label"><span class="color-dot" style="background:var(--sugar-color);" onclick="openMacroColorPicker('sugar')"></span><span class="label-text">Sugar</span></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weekly Chart — dashboard/dashboard.css + dashboard/dashboard.js.
+                     Lives directly under the Dashboard card in this same column, so it
+                     starts right after that card ends instead of waiting for Today's
+                     food (the other column) to finish first. -->
+                <div class="chart-box weekly-chart-box">
+                    <div class="label"><span><i class="fas fa-chart-bar"></i> This week</span></div>
+                    <canvas id="weeklyChart" height="70"></canvas>
+                </div>
+
+                <!-- ===== WIDGET: Weight (small) — lives in weight-tracking/weight-tracking.css + weight-tracking/weight-tracking.js =====
+                     Moved into this column, directly under This week, and sized to match
+                     it (same .chart-box height values — see .weight-box in
+                     weight-tracking.css) rather than sitting next to Calendar. -->
+                <div class="chart-box weight-box">
+                    <div class="weight-row">
+                        <span class="label"><i class="fas fa-weight"></i> Weight</span>
+                        <button onclick="addWeight()">+ log</button>
+                    </div>
+                    <div class="weight-chart-wrap">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                    <div class="weight-display-overlay" id="weightDisplayOverlay">
+                        <span class="current-weight" id="currentWeightDisplay">-- <span class="unit">kg</span></span>
+                        <span class="trend neutral" id="weightTrendDisplay"><span class="arrow">—</span> no data</span>
+                    </div>
+                </div>
+                <!-- ===== END WIDGET: Weight (small) ===== -->
+                </div>
+
+                <div class="dash-col dash-col-right">
+                <!-- RIGHT CARD: today's food
+                     "food-card" (in addition to the existing "card" base class) is
+                     new — it's just a hook for dashboard.css to pin .food-actions to
+                     the bottom of a fixed-height card (see .food-card there) without
+                     affecting any other ".card" elsewhere in the app. -->
+                <div class="card food-card">
+                    <div class="card-title">
+                        <span><i class="fas fa-list-ul"></i> Today's food</span>
+                        <span id="logCount">0 items</span>
+                    </div>
+                    <div class="food-log" id="todayLog">
+                        <div class="empty">Nothing logged yet — tap "Add food" to start tracking today.</div>
+                    </div>
+                    <div class="food-actions">
+                        <button class="primary" onclick="openAddFoodModal()"><i class="fas fa-plus"></i> Add food</button>
+                        <button onclick="resetToday()" class="danger"><i class="fas fa-trash-alt"></i> Reset day</button>
+                        <span class="note">clears on refresh · totals saved</span>
+                    </div>
+                </div>
+
+                <!-- ===== WIDGET: Calendar — lives in calendar/calendar.css + calendar/calendar.js =====
+                     Directly under Today's food in this same column now, at full column
+                     width (matching Today's food's width) instead of sharing a row with
+                     Weight. "calendar-box" (in addition to "chart-box") is a hook so
+                     dashboard.css can target just this widget for the narrow-window
+                     stacking order. -->
+                <div class="chart-box calendar-box">
+                    <div class="label">
+                        <span><i class="fas fa-calendar-alt"></i> Calendar</span>
+                        <span class="month-label" id="calendarMonthLabel">August 2026</span>
+                        <span class="nav-btns">
+                            <button onclick="changeMonth(-1)"><i class="fas fa-chevron-left"></i></button>
+                            <button onclick="changeMonth(1)"><i class="fas fa-chevron-right"></i></button>
+                        </span>
+                    </div>
+                    <div class="cal-grid" id="calendarGrid"></div>
+                    <div class="cal-legend">
+                        <span><span class="dot green"></span> at/under</span>
+                        <span><span class="dot red"></span> over</span>
+                        <span id="calLegendOverLabel"></span>
+                    </div>
+                </div>
+                <!-- ===== END WIDGET: Calendar ===== -->
+                </div>
+            </div>
+        </div>
+        <!-- ===== END TAB 1: DASHBOARD ===== -->
+
+        <!-- ===== TAB 2: INGREDIENTS — ingredients/ingredients.css + ingredients/ingredients.js ===== -->
+        <div class="tab-content" id="tab-ingredients">
+            <div class="card" style="padding:16px 20px;">
+                <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:12px;">
+                    <span style="font-weight:700; font-size:1.1rem;"><i class="fas fa-carrot" style="color:var(--accent);"></i> All ingredients</span>
+                    <input class="ingredient-search" id="ingredientSearch" placeholder="Search ingredients..." oninput="filterIngredients()">
+                    <span style="font-size:0.8rem; color:var(--text-muted);"><span id="ingredientCount">0</span> items</span>
+                    <button class="primary" style="background:var(--accent); color:#fff; border:none; border-radius:40px; padding:6px 20px; cursor:pointer; font-weight:600; transition:0.2s;" onclick="openAddIngredientModal()"><i class="fas fa-plus"></i> Add</button>
+                </div>
+
+                <div class="ingredient-toolbar" id="ingredientToolbar">
+                    <span class="selected-count" id="selectedCount">0 selected</span>
+                    <select id="bulkCategorySelect">
+                        <option value="">Move to category...</option>
+                    </select>
+                    <button onclick="bulkMoveIngredients()">Move selected</button>
+                    <button class="btn-danger" onclick="bulkDeleteIngredients()"><i class="fas fa-trash-alt"></i> Delete</button>
+                    <button onclick="toggleSelectAll()">Select all</button>
+                    <button onclick="clearSelection()">Clear</button>
+                </div>
+
+                <div id="ingredientGrid"></div>
+            </div>
+        </div>
+        <!-- ===== END TAB 2: INGREDIENTS ===== -->
+
+        <!-- ===== TAB 3: SAVED MEALS — saved-meals/saved-meals.css + saved-meals/saved-meals.js ===== -->
+        <div class="tab-content" id="tab-saved">
+            <div class="card" style="padding:16px 20px;">
+                <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:14px;">
+                    <span style="font-weight:700; font-size:1.1rem;"><i class="fas fa-bookmark" style="color:var(--accent);"></i> Saved meals</span>
+                    <span style="font-size:0.8rem; color:var(--text-muted);"><span id="savedCount">0</span> meals</span>
+                    <button onclick="openSaveMealFromCurrentLog()" style="background:var(--accent); color:#fff; border:none; border-radius:40px; padding:6px 20px; cursor:pointer; font-weight:600; transition:0.2s; box-shadow:0 4px 12px rgba(45,122,255,0.3);"><i class="fas fa-plus"></i> New</button>
+                </div>
+                <div class="saved-meal-grid" id="savedMealGrid"></div>
+            </div>
+        </div>
+        <!-- ===== END TAB 3: SAVED MEALS ===== -->
+
+        <!-- ===== TAB 4: WEIGHT TRACK — weight-tracking/weight-tracking.css + weight-tracking/weight-tracking.js ===== -->
+        <div class="tab-content" id="tab-weight">
+            <div class="weight-tab-header">
+                <span class="title"><i class="fas fa-weight"></i> Weight History</span>
+                <button onclick="addWeightFromTab()"><i class="fas fa-plus"></i> Log Weight</button>
+            </div>
+            <div class="weight-tab-content">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-list-ul"></i> All entries</div>
+                    <div style="max-height:340px; overflow-y:auto;">
+                        <div class="weight-list" id="weightList"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-chart-line"></i> Weight chart</div>
+                    <div class="chart-wrap">
+                        <canvas id="weightFullChart" height="240"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END TAB 4: WEIGHT TRACK ===== -->
+
+        <!-- ===== POPUP: Add Food — dashboard/dashboard.css + dashboard/dashboard.js ===== -->
+        <div class="modal-overlay" id="addFoodModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-plus-circle"></i> Add food</h2>
+                    <button class="modal-close" onclick="closeAddFoodModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Ingredient</label>
+                    <div class="searchable-select-wrap">
+                        <input type="text" id="ingredientSearchInput" placeholder="Click to search ingredients..." autocomplete="off" onfocus="showDropdown()" oninput="filterDropdown()">
+                        <div class="dropdown-list" id="dropdownList"></div>
+                    </div>
+                </div>
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="modalAmount" value="100" step="0.1" min="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="modalUnit">
+                            <option value="g">g</option>
+                            <option value="ml">ml</option>
+                            <option value="pc">pc</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="saved-meals-section" id="modalSavedMealsSection">
+                    <div class="sm-label"><i class="fas fa-bookmark"></i> Load saved meal</div>
+                    <div class="sm-grid" id="modalSavedMealsGrid"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeAddFoodModal()">Cancel</button>
+                    <button class="btn-primary" onclick="addFoodFromModal()"><i class="fas fa-check"></i> Add</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Add Food ===== -->
+
+        <!-- ===== POPUP: Date Picker — dashboard/dashboard.css + dashboard/dashboard.js ===== -->
+        <div class="modal-overlay" id="datePickerModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-calendar-plus"></i> Manage date</h2>
+                    <button class="modal-close" onclick="closeDatePickerModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Select date</label>
+                    <input type="date" id="datePickerInput" value="">
+                </div>
+                <div style="margin-top:12px; padding:14px; background:var(--bg-input); border-radius:16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-weight:600;">Current log for that date:</span>
+                        <span id="datePickerKcal">0 kcal</span>
+                    </div>
+                    <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+                        <span id="datePickerItemCount">0 items</span>
+                    </div>
+                </div>
+                <div class="modal-actions" style="margin-top:12px; flex-wrap:wrap;">
+                    <button class="btn-secondary" onclick="closeDatePickerModal()">Cancel</button>
+                    <button class="btn-primary" onclick="switchToDate()"><i class="fas fa-arrow-right"></i> Go to this date</button>
+                    <button class="btn-primary" style="background:var(--accent);" onclick="addFoodForDate()"><i class="fas fa-plus"></i> Add food</button>
+                    <button class="btn-danger" onclick="deleteDateLog()"><i class="fas fa-trash-alt"></i> Delete day</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Date Picker ===== -->
+
+        <!-- ===== POPUP: Save/Edit Meal — saved-meals/saved-meals.css + saved-meals/saved-meals.js ===== -->
+        <div class="modal-overlay" id="saveMealModal">
+            <div class="modal wide">
+                <div class="modal-header">
+                    <h2><i class="fas fa-save" style="color:var(--accent);"></i> <span id="mealModalTitle">Save meal</span></h2>
+                    <button class="modal-close" onclick="closeSaveMealModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Meal name</label>
+                    <input type="text" id="mealNameInput" placeholder="e.g. Breakfast, Lunch..." value="">
+                </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <div class="icon-grid" id="iconPickerGrid"></div>
+                    <div style="display:flex; gap:8px; margin-top:4px;">
+                        <span style="font-size:0.7rem; color:var(--text-muted);">Selected: </span>
+                        <span id="selectedIconDisplay" style="font-size:1.4rem;">🍽️</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Items in this meal</label>
+                    <div id="mealItemsList" style="max-height:200px; overflow-y:auto; border:1px solid var(--border-light); border-radius:16px; padding:10px 14px;">
+                        <div style="color:var(--text-muted); font-style:italic; font-size:0.9rem;">No items yet</div>
+                    </div>
+                    <div style="margin-top:6px;">
+                        <button onclick="openIngredientSelectionModal()" class="add-ingredient-btn" style="padding:6px 20px; font-size:0.8rem;"><i class="fas fa-plus"></i> Add ingredient</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Instructions (optional)</label>
+                    <textarea id="mealInstructionsInput" placeholder="e.g. Cook pasta, add sauce, bake for 20 min..." rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Picture</label>
+                    <input type="file" id="mealPictureFile" accept="image/*" onchange="handleMealPictureFile(event)" style="padding:8px; background:var(--bg-input); border:1px solid var(--border-light); border-radius:40px; width:100%;">
+                    <div style="margin-top:4px; font-size:0.7rem; color:var(--text-muted);">— or enter URL below —</div>
+                    <input type="text" id="mealPictureInput" placeholder="https://example.com/meal.jpg" oninput="updateMealPicturePreview()" style="margin-top:4px;">
+                    <div class="meal-picture-preview" id="mealPicturePreview">
+                        <img id="mealPicturePreviewImg" src="" alt="Meal preview" onerror="this.parentElement.classList.remove('show')">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeSaveMealModal()">Cancel</button>
+                    <button class="btn-danger" id="deleteMealBtn" style="display:none;" onclick="deleteMeal()">Delete Meal</button>
+                    <button class="btn-primary" onclick="confirmSaveMeal()"><i class="fas fa-check"></i> Save</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Save/Edit Meal ===== -->
+
+        <!-- ===== POPUP: Ingredient Selection (used while building a meal) — saved-meals/saved-meals.css + saved-meals/saved-meals.js ===== -->
+        <div class="modal-overlay" id="ingredientSelectionModal">
+            <div class="modal wide">
+                <div class="modal-header">
+                    <h2><i class="fas fa-carrot" style="color:var(--accent);"></i> Select Ingredient</h2>
+                    <button class="modal-close" onclick="closeIngredientSelectionModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="ingredientSelectionSearch" placeholder="Search ingredients..." oninput="filterIngredientSelection()" style="width:100%; padding:12px 16px; border-radius:40px; border:1px solid var(--border-light); background:var(--bg-input); color:var(--text-primary); font-size:0.95rem; outline:none;">
+                </div>
+                <div id="ingredientSelectionList" style="max-height:300px; overflow-y:auto; border:1px solid var(--border-light); border-radius:16px; padding:4px; margin-bottom:12px;"></div>
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>Amount</label>
+                        <input type="number" id="ingredientSelectionAmount" value="100" step="0.1" min="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <select id="ingredientSelectionUnit">
+                            <option value="g">g</option>
+                            <option value="ml">ml</option>
+                            <option value="pc">pc</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeIngredientSelectionModal()">Cancel</button>
+                    <button class="btn-primary" onclick="addSelectedIngredientToMeal()"><i class="fas fa-check"></i> Add</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Ingredient Selection ===== -->
+
+        <!-- ===== POPUP: Settings — shared/theme-and-layout.css + shared/app-data-and-settings.js ===== -->
+        <div class="modal-overlay" id="settingsModal">
+            <div class="modal wide">
+                <div class="modal-header">
+                    <h2><i class="fas fa-cog" style="color:var(--accent);"></i> Settings</h2>
+                    <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <div class="color-setting-row">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorDonutRemaining" value="#dce3ec" onchange="updateDonutRemainingColor(this.value)">
+                            <span>Donut Remaining Color</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="color-setting-row">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorDonutMain" value="#2d7aff" onchange="updateDonutMainColor(this.value)">
+                            <span>Calorie Donut Color</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="color-setting-row">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorGlow" value="#ff6b6b" oninput="updateGlowColor(this.value)">
+                            <span>Over-limit Glow & Marker Color</span>
+                        </label>
+                    </div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); margin-top:4px;">Affects glow on Carbs & Fat bars, and the calendar carb‑over dot</div>
+                </div>
+                <div class="form-group">
+                    <label>Macro Colors</label>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorProtein" value="#e74c3c" onchange="updateMacroColor('protein', this.value)">
+                            <span>Protein</span>
+                        </label>
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorCarbs" value="#f39c12" onchange="updateMacroColor('carbs', this.value)">
+                            <span>Carbs</span>
+                        </label>
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorFat" value="#f1c40f" onchange="updateMacroColor('fat', this.value)">
+                            <span>Fat</span>
+                        </label>
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorFiber" value="#2ecc71" onchange="updateMacroColor('fiber', this.value)">
+                            <span>Fiber</span>
+                        </label>
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorSugar" value="#9b59b6" onchange="updateMacroColor('sugar', this.value)">
+                            <span>Sugar</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Weekly Chart Colors</label>
+                    <div style="display:flex; gap:16px; flex-wrap:wrap;">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorUnderChart" value="#a8e6cf" onchange="updateChartColor('under', this.value)">
+                            <span>Under</span>
+                        </label>
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorOverChart" value="#f5a3a3" onchange="updateChartColor('over', this.value)">
+                            <span>Over</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="color-setting-row">
+                        <label class="color-name-btn">
+                            <input type="color" class="color-swatch-btn" id="colorWeightLine" value="#614ccd" onchange="updateWeightLineColor(this.value)">
+                            <span>Weight Chart Line Color</span>
+                        </label>
+                    </div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); margin-top:4px;">Affects the Weight chart's line and soft fill, on the Dashboard widget and the full Weight Track tab</div>
+                </div>
+                <div class="form-group">
+                    <label>Calendar Over-Limit Markers (up to 4)</label>
+                    <div style="display:flex; gap:14px; flex-wrap:wrap;">
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-primary); cursor:pointer;">
+                            <input type="checkbox" id="calOverMacro_protein" onchange="toggleCalendarOverMacro('protein', this.checked)"> Protein
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-primary); cursor:pointer;">
+                            <input type="checkbox" id="calOverMacro_carbs" onchange="toggleCalendarOverMacro('carbs', this.checked)"> Carbs
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-primary); cursor:pointer;">
+                            <input type="checkbox" id="calOverMacro_fat" onchange="toggleCalendarOverMacro('fat', this.checked)"> Fat
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-primary); cursor:pointer;">
+                            <input type="checkbox" id="calOverMacro_fiber" onchange="toggleCalendarOverMacro('fiber', this.checked)"> Fiber
+                        </label>
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-primary); cursor:pointer;">
+                            <input type="checkbox" id="calOverMacro_sugar" onchange="toggleCalendarOverMacro('sugar', this.checked)"> Sugar
+                        </label>
+                    </div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); margin-top:4px;">Each picked macro gets its own colored dot on a Calendar day when that macro goes over target that day</div>
+                </div>
+                <div class="form-group">
+                    <label>Category Icons</label>
+                    <div id="categoryIconSettings" style="max-height:200px; overflow-y:auto; border:1px solid var(--border-light); border-radius:16px; padding:10px 14px;"></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeSettingsModal()">Close</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Settings ===== -->
+
+        <!-- ===== POPUP: Edit Category — ingredients/ingredients.css + ingredients/ingredients.js ===== -->
+        <div class="modal-overlay" id="editCategoryModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-tag" style="color:var(--accent);"></i> Edit Category</h2>
+                    <button class="modal-close" onclick="closeEditCategoryModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" id="catEditName" value="">
+                </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <div class="cat-icon-picker" id="catIconPicker"></div>
+                    <div style="margin-top:4px; font-size:0.9rem;">Selected: <span id="catSelectedIcon">🍽️</span></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeEditCategoryModal()">Cancel</button>
+                    <button class="btn-danger" id="catDeleteBtn" style="display:none;" onclick="deleteCategory()">Delete</button>
+                    <button class="btn-primary" onclick="saveCategory()"><i class="fas fa-check"></i> Save</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Edit Category ===== -->
+
+        <!-- ===== POPUP: Add/Edit Ingredient — ingredients/ingredients.css + ingredients/ingredients.js ===== -->
+        <div class="modal-overlay" id="ingredientEditModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-edit" style="color:var(--accent);"></i> <span id="ingredientEditTitle">Add Ingredient</span></h2>
+                    <button class="modal-close" onclick="closeIngredientEditModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="ingEditName" placeholder="e.g. Chicken breast, raw">
+                </div>
+                <div class="row-2">
+                    <div class="form-group"><label>Kcal</label><input type="number" id="ingEditKcal" step="1" min="0"></div>
+                    <div class="form-group"><label>Protein (g)</label><input type="number" id="ingEditProtein" step="0.1" min="0"></div>
+                    <div class="form-group"><label>Carbs (g)</label><input type="number" id="ingEditCarbs" step="0.1" min="0"></div>
+                </div>
+                <div class="row-2">
+                    <div class="form-group"><label>Fat (g)</label><input type="number" id="ingEditFat" step="0.1" min="0"></div>
+                    <div class="form-group"><label>Fiber (g)</label><input type="number" id="ingEditFiber" step="0.1" min="0"></div>
+                    <div class="form-group"><label>Sugar (g)</label><input type="number" id="ingEditSugar" step="0.1" min="0"></div>
+                </div>
+                <div class="row-2">
+                    <div class="form-group"><label>Unit</label>
+                        <select id="ingEditUnit"><option value="g">g</option><option value="ml">ml</option><option value="pc">pc</option></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="ingEditCategory" style="font-size:0.95rem;"></select>
+                    <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+                        <button onclick="openNewCategoryWithIcon()" style="background:var(--accent); color:#fff; border:none; border-radius:30px; padding:6px 18px; cursor:pointer; font-weight:600; transition:0.2s;"><i class="fas fa-plus"></i> Add Category</button>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeIngredientEditModal()">Cancel</button>
+                    <button class="btn-danger" id="ingDeleteBtn" style="display:none;" onclick="deleteIngredient()">Delete</button>
+                    <button class="btn-primary" onclick="saveIngredient()"><i class="fas fa-check"></i> Save</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Add/Edit Ingredient ===== -->
+
+        <!-- ===== POPUP: New Category — ingredients/ingredients.css + ingredients/ingredients.js ===== -->
+        <div class="modal-overlay" id="newCategoryModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-folder-plus" style="color:var(--accent);"></i> New Category</h2>
+                    <button class="modal-close" onclick="closeNewCategoryModal()">&times;</button>
+                </div>
+                <div class="form-group">
+                    <label>Category Name</label>
+                    <input type="text" id="newCatName" placeholder="e.g. My Category">
+                </div>
+                <div class="form-group">
+                    <label>Icon</label>
+                    <div class="cat-icon-picker" id="newCatIconPicker"></div>
+                    <div style="margin-top:4px; font-size:0.9rem;">Selected: <span id="newCatSelectedIcon">📁</span></div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closeNewCategoryModal()">Cancel</button>
+                    <button class="btn-primary" onclick="confirmNewCategory()"><i class="fas fa-check"></i> Create</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: New Category ===== -->
+
+    </div>
+
+    <!-- Scripts load in this order: food database first (pure data), then the
+         shared app data/settings, then each feature's own behavior file.
+         cloud-sync.js loads LAST — it needs the Firebase <script> tags from
+         <head> (already loaded by now) plus #authOverlay/#accountPanel
+         above, and installs its localStorage hook only once everything
+         else has had a chance to load. -->
+    <script src="food-database/ingredient-list.js"></script>
+    <script src="shared/app-data-and-settings.js"></script>
+    <script src="dashboard/dashboard.js"></script>
+    <script src="calendar/calendar.js"></script>
+    <script src="weight-tracking/weight-tracking.js"></script>
+    <script src="ingredients/ingredients.js"></script>
+    <script src="saved-meals/saved-meals.js"></script>
+    <script src="shared/cloud-sync.js"></script>
+
+    <!-- ============================================================
+         BOOTSTRAP — starts the app once every file above has loaded.
+         This intentionally stays in index.html (not moved to any one
+         feature file) because it calls functions from several
+         different files in a specific order. There is normally no
+         need to touch this block.
+         ============================================================ -->
+    <script>
+        loadSettings();
+        applyAccentToBody(userAccentColor);
+        document.body.style.setProperty('--glow-color', glowColor, 'important');
+
+        document.getElementById('lightIcon').classList.add('active');
+        renderDashboard();
+        renderSavedMeals();
+        renderWeightTab();
+
+        const storedDate = localStorage.getItem('tracker_date');
+        if (storedDate !== today) {
+            localStorage.setItem('tracker_date', today);
+            dailyLog = JSON.parse(localStorage.getItem('dailyLog_' + today)) || [];
+            renderDashboard();
+        }
+
+        document.querySelectorAll('.modal-overlay').forEach(overlay => {
+            overlay.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

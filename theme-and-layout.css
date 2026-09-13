@@ -1,0 +1,810 @@
+/* ============================================================
+   SHARED THEME & LAYOUT — theme-and-layout.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+   Things used across the WHOLE app, not owned by one tab/widget:
+     - the reset + color variables (light theme AND dark theme)
+     - page background, scrollbar
+     - the top bar (logo, light/dark toggle, accent color picker, settings button)
+     - the tab bar (Dashboard / Ingredients / Saved Meals / Weight Track)
+     - the generic ".card" and ".chart-box" look used as the base
+       container for EVERY card/widget in the app (each feature file
+       then adds its own specific tweaks on top of this base look)
+     - the shared popup/modal window styling (the dark overlay, the
+       white box, the header, form fields, dropdown lists) used by
+       every popup in the app: Add Food, Settings, Edit Category,
+       Add/Edit Ingredient, New Category, Save/Edit Meal, Select Ingredient
+     - the round "color-swatch-btn" look for every color-picker button
+       in the Settings popup (Donut Remaining, Calorie Donut Color,
+       Glow, Macro Colors, Weekly Chart Under/Over) — each one fills
+       in with the color it's currently set to (that part is
+       app-data-and-settings.js)
+     - the oval "color-name-btn" pill look for every color-picker in
+       the Settings popup, with the setting's name written on top of
+       the colored pill itself (Donut Remaining, Calorie Donut Color,
+       Glow, Macro Colors, Weekly Chart Under/Over) — each one fills
+       in with the color
+       it's currently set to (that part is app-data-and-settings.js);
+       plus the compact "color-setting-row" layout and tighter
+       padding/spacing used ONLY inside the Settings popup
+       (#settingsModal), to cut down on dead space
+
+   IMPORTANT — CSS VARIABLES:
+   Every other CSS file in this app uses variables defined here, like
+   var(--accent), var(--text-primary), var(--bg-card), var(--border-light).
+   If you rename or remove a variable here, every other file that uses
+   it will break. If you want to change the overall color palette, this
+   is the ONE file to edit — it will update the whole app.
+
+   SAFE TO REWORK ALONE?
+   Yes, for anything about the overall look/feel: colors, fonts, the
+   top bar, the tab bar, general card/modal appearance. If you want to
+   change how ONE SPECIFIC widget looks (e.g. just the calendar, or
+   just the weight chart), edit that widget's own file instead — this
+   file only holds what's shared by everything.
+   ============================================================ */
+
+/* ----- RESET & VARIABLES ----- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+}
+
+:root {
+    --bg-body: #eef2f7;
+    --bg-body-gradient: linear-gradient(145deg, #f0f5fa 0%, #e4ebf3 100%);
+    --bg-card: rgba(255, 255, 255, 0.72);
+    --bg-card-solid: #ffffff;
+    --bg-input: #f0f4fa;
+    --bg-hover: #e3eaf2;
+    /* --text-primary is the single fixed main-text color for this mode —
+       there is no Settings option to change it (removed on purpose: only
+       --accent above is meant to be used for highlighted/selected text,
+       e.g. .tab-btn.active in the tab bar below). */
+    --text-primary: #1a2639;
+    --text-secondary: #2c3e50;
+    --text-muted: #6b7f94;
+    --border-light: rgba(0, 0, 0, 0.06);
+    --shadow-sm: 0 8px 24px rgba(0, 20, 30, 0.06);
+    --shadow-lg: 0 20px 48px rgba(0, 20, 30, 0.10);
+    --accent: #2d7aff;
+    --accent-soft: #e2ebff;
+    --radius: 24px;
+    --over: #fde8e8;
+    --over-text: #b33c3c;
+    --under: #e6f7e6;
+    --under-text: #1e6b3b;
+    --tab-bg: rgba(0, 0, 0, 0.04);
+    --tab-active: #ffffff;
+    --modal-overlay: rgba(0, 0, 0, 0.45);
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --cherry: #e74c3c;
+    --carbs-color: #f39c12;
+    --fat-color: #f1c40f;
+    --fiber-color: #2ecc71;
+    --protein-color: #e74c3c;
+    --sugar-color: #9b59b6;
+    --under-chart: #a8e6cf;
+    --over-chart: #f5a3a3;
+    --macro-bg: rgba(0, 0, 0, 0.08);
+    --donut-remaining: #dce3ec;
+    --glow-color: #ff6b6b;
+    --badge-bg: rgba(0, 0, 0, 0.06);
+    --dropdown-header-bg: #e9edf3;
+    --add-btn-bg: #f0f4fa;
+    --add-btn-text: #1a2639;
+    --add-btn-border: rgba(0, 0, 0, 0.06);
+    --add-btn-hover: #e3eaf2;
+    --category-icon-color: #6b7f94;
+    --chart-grid: rgba(0, 0, 0, 0.04);
+    --weight-trend-up: #2ecc71;
+    --weight-trend-down: #e74c3c;
+    --weight-trend-neutral: #f39c12;
+    --bar-under: #a8e6cf;
+    --bar-over: #f5a3a3;
+    --weight-line: #4ecdc4;
+    --weight-fill: rgba(78, 205, 196, 0.15);
+    --weight-point: #4ecdc4;
+}
+
+body.dark {
+    --bg-body: #0f1624;
+    --bg-body-gradient: linear-gradient(145deg, #0f1624 0%, #192134 100%);
+    --bg-card: rgba(25, 35, 55, 0.78);
+    --bg-card-solid: #1e2a3a;
+    --bg-input: #263244;
+    --bg-hover: #314258;
+    --text-primary: #eaf0f8;
+    --text-secondary: #cbdae8;
+    --text-muted: #9aabc0;
+    --border-light: rgba(255, 255, 255, 0.06);
+    --shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.6);
+    --accent-soft: #1f334a;
+    --over: #3d1f1f;
+    --over-text: #f5baba;
+    --under: #1a3d1a;
+    --under-text: #8fda8f;
+    --tab-bg: rgba(255, 255, 255, 0.04);
+    --tab-active: #1e2a3a;
+    --modal-overlay: rgba(0, 0, 0, 0.7);
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --cherry: #e74c3c;
+    /* NOTE: --carbs-color / --fat-color / --fiber-color / --protein-
+       color / --sugar-color / --donut-remaining are deliberately NOT
+       redeclared here. They're user-configurable (Settings), and
+       applyColors() in app-data-and-settings.js sets the user's chosen
+       value as an inline style on <html> — if this block redeclared
+       them with fixed defaults, that fixed value would win over the
+       user's chosen color for anything inside <body> in dark mode (a
+       plain CSS variable set directly on an element always beats one
+       inherited from an ancestor, inline style or not), which is
+       exactly the "swatch shows the wrong color in dark mode" bug this
+       comment is here to prevent from coming back (this is also why
+       --donut-remaining used to be redeclared below with its own fixed
+       dark-mode value — that was the same bug, since the Donut
+       Remaining Area picker sets --donut-remaining directly on <html>
+       too; removing that redeclaration is the fix). Same reasoning
+       applies to --under-chart/--over-chart below, so those keep their
+       own dark-mode values only because nothing currently reads the
+       user's chosen chart colors through them (dashboard.js uses the
+       chartColors JS object directly instead) — if that ever changes,
+       these two would need the same treatment.
+     */
+    --under-chart: #2a5a3a;
+    --over-chart: #5a2a2a;
+    --macro-bg: rgba(255, 255, 255, 0.06);
+    --badge-bg: rgba(255, 255, 255, 0.06);
+    --dropdown-header-bg: #263244;
+    --add-btn-bg: #263244;
+    --add-btn-text: #eaf0f8;
+    --add-btn-border: rgba(255, 255, 255, 0.06);
+    --add-btn-hover: #314258;
+    --category-icon-color: #9aabc0;
+    --chart-grid: rgba(255, 255, 255, 0.04);
+    --weight-trend-up: #2ecc71;
+    --weight-trend-down: #e74c3c;
+    --weight-trend-neutral: #f39c12;
+    --bar-under: #2a5a3a;
+    --bar-over: #5a2a2a;
+    --weight-line: #4ecdc4;
+    --weight-fill: rgba(78, 205, 196, 0.12);
+    --weight-point: #4ecdc4;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 10px;
+}
+
+body {
+    background: var(--bg-body);
+    background-image: var(--bg-body-gradient);
+    color: var(--text-primary);
+    padding: 20px 24px 40px;
+    min-height: 100vh;
+    transition: background 0.3s ease, color 0.2s ease;
+}
+
+.app {
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+/* ----- HEADER ----- */
+.top-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 12px 24px;
+    border-radius: 60px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.logo h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--text-primary), var(--accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.logo i {
+    background: none;
+    -webkit-text-fill-color: var(--accent);
+    font-size: 1.5rem;
+}
+
+.theme-accent-panel {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.theme-toggle,
+.color-picker-wrap {
+    background: var(--bg-input);
+    padding: 4px 14px;
+    border-radius: 40px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--border-light);
+    height: 40px;
+}
+.theme-toggle i {
+    font-size: 1rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: 0.2s;
+    padding: 4px;
+}
+.theme-toggle i.active {
+    color: var(--accent);
+    transform: scale(1.1);
+}
+.color-picker-wrap input[type="color"] {
+    width: 26px;
+    height: 26px;
+    border: 2px solid var(--border-light);
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;
+}
+.color-picker-wrap .color-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.settings-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 40px;
+    padding: 4px 16px;
+    height: 40px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* ===== CLOUD SYNC: signed-in account pill (top bar) — shared/cloud-sync.js
+   toggles this panel's display:flex/none based on sign-in state. Matches
+   the same pill look as .theme-toggle/.color-picker-wrap right above so it
+   sits naturally among the other top-bar controls. The "sign out" button
+   inside it reuses .settings-btn as-is, just smaller via the size below. */
+.account-panel {
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-input);
+    padding: 4px 6px 4px 16px;
+    border-radius: 40px;
+    border: 1px solid var(--border-light);
+    height: 40px;
+}
+.account-panel .account-email {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.account-panel .settings-btn {
+    height: 30px;
+    padding: 0 12px;
+}
+
+/* ===== CLOUD SYNC: full-screen sign-in gate — shared/cloud-sync.js shows
+   this (via the .show class) whenever you're not signed in, covering the
+   app underneath entirely until you are. Deliberately its own class
+   (not .modal-overlay) so it's NOT picked up by the generic "click outside
+   a modal closes it" handler wired up in index.html's bootstrap script —
+   this one must not be dismissible that way. The box inside it reuses the
+   shared .modal/.modal-header/.form-group/.modal-actions look as-is. */
+.auth-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--modal-overlay);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.auth-overlay.show {
+    display: flex;
+}
+.auth-error {
+    background: var(--over);
+    color: var(--over-text);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    margin-bottom: 14px;
+    line-height: 1.5;
+}
+.auth-toggle {
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 16px;
+}
+.auth-toggle a {
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    margin-left: 4px;
+}
+.auth-status {
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+    min-height: 1em;
+}
+/* ----- TABS ----- */
+.tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--tab-bg);
+    border-radius: 18px;
+    padding: 4px;
+    margin-bottom: 24px;
+    border: 1px solid var(--border-light);
+    flex-wrap: wrap;
+    backdrop-filter: blur(8px);
+}
+.tab-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: 0.25s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    letter-spacing: -0.2px;
+}
+.tab-btn i {
+    font-size: 1rem;
+}
+.tab-btn.active {
+    background: var(--tab-active);
+    color: var(--accent);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transform: scale(1.02);
+}
+
+.tab-content {
+    display: none;
+    animation: fadeSlide 0.3s ease;
+}
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ----- GENERIC CARD (base look for every big card in the app) ----- */
+.card {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transition: 0.3s ease;
+}
+
+.card-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+/* ----- GENERIC SMALL WIDGET BOX (base look shared by the Weekly Chart,
+   Calendar and Weight widgets — each of those files adds its own
+   extra sizing rules like .weekly-chart-box / .weight-box on top) ----- */
+.chart-box {
+    background: var(--bg-card);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+    transition: 0.3s ease;
+}
+
+.chart-box .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.chart-box .label .nav-btns {
+    display: flex;
+    gap: 6px;
+    margin-left: auto;
+}
+.chart-box .label .nav-btns button {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 30px;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.15s;
+}
+.chart-box .label .month-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-transform: none;
+}
+
+/* ----- SHARED POPUP / MODAL WINDOW CHROME -----
+   Used by every popup in the app (Add Food, Settings, Edit Category,
+   Add/Edit Ingredient, New Category, Save/Edit Meal, Select Ingredient).
+   Each popup's OWN content (its specific fields/lists) is styled in
+   that feature's own CSS file — this part is just the shared box,
+   header, buttons and form-field look all popups share. */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--modal-overlay);
+    z-index: 999;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.modal-overlay.show {
+    display: flex;
+}
+
+.modal {
+    background: var(--bg-card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border-radius: var(--radius);
+    padding: 32px 36px;
+    max-width: 580px;
+    width: 92%;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-lg);
+    animation: modalIn 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.modal.wide {
+    max-width: 720px;
+}
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.modal-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-primary);
+}
+.modal-header h2 i {
+    color: var(--accent);
+}
+.modal-close {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 40px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    padding: 4px 14px;
+    transition: 0.15s;
+}
+.modal .form-group {
+    margin-bottom: 16px;
+}
+.modal .form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+.modal .form-group input,
+.modal .form-group select,
+.modal .form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 40px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    transition: 0.2s;
+}
+.modal .form-group textarea {
+    border-radius: 16px;
+    resize: vertical;
+    min-height: 60px;
+    font-family: inherit;
+}
+.modal .form-group input:focus,
+.modal .form-group select:focus,
+.modal .form-group textarea:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 122, 255, 0.15);
+}
+
+/* Base look for every color-swatch-btn (class="color-swatch-btn" on each
+   <input type="color"> in the Settings popup). Overrides the generic
+   pill-shaped/full-width input look right above so these instead read as
+   a small round color swatch — the same circular treatment already used
+   by the Accent color picker in the top bar (.color-picker-wrap
+   input[type="color"]) — with the picked color itself filling the circle
+   (that live fill-in is handled in shared/app-data-and-settings.js's
+   setColorSwatch()). The pseudo-element rules keep the browser's own
+   internal swatch from covering the corners of the circle with its own
+   square edges. NOTE: every color-swatch-btn in this app is wrapped in a
+   .color-name-btn label, and the more specific #settingsModal
+   .color-name-btn rules further down override this circle into an oval
+   pill with the setting's name on top — this block is what those rules
+   build on top of. */
+.modal .form-group input.color-swatch-btn {
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border-radius: 50%;
+    border: 2px solid var(--bg-card-solid);
+    box-shadow: 0 0 0 1px var(--border-light);
+    background: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.modal .form-group input.color-swatch-btn::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 50%;
+}
+.modal .form-group input.color-swatch-btn::-webkit-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
+.modal .form-group input.color-swatch-btn::-moz-color-swatch {
+    border: none;
+    border-radius: 50%;
+}
+
+/* Settings popup only: compact single-line rows for solo color-picker
+   settings (class="color-setting-row" wraps one color-name-btn) — and
+   trims this modal's padding/spacing overall, since the default sizes
+   shared by every popup left a lot of empty space once the swatches
+   became small. Scoped to #settingsModal so no other popup's
+   spacing/layout is affected. */
+#settingsModal.modal {
+    padding: 24px 28px;
+}
+#settingsModal .modal-header {
+    margin-bottom: 14px;
+}
+#settingsModal .form-group {
+    margin-bottom: 9px;
+}
+#settingsModal .color-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+#settingsModal .color-setting-row label {
+    margin-bottom: 0;
+}
+
+/* Settings popup: turns every color picker into an oval pill with its
+   own setting name written on top of it (class="color-name-btn" is a
+   <label> wrapping one color-swatch-btn <input> plus a <span> holding
+   the name — used both for the solo settings like Donut Remaining
+   Color, and for each swatch inside a group like Macro Colors). The <span> sits in
+   normal flow, so its own text + padding is what sizes the pill; the
+   <input> is layered underneath, absolutely positioned to exactly
+   cover that same pill shape and filled with the picked color (that
+   live fill-in is handled in shared/app-data-and-settings.js's
+   setColorSwatch()). This overrides the plain round "color-swatch-btn"
+   look defined above, only inside the Settings popup. */
+#settingsModal .color-name-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+#settingsModal .color-name-btn span {
+    position: relative;
+    z-index: 1;
+    padding: 7px 18px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+    pointer-events: none;
+}
+#settingsModal .color-name-btn input.color-swatch-btn {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    border: 2px solid var(--bg-card-solid);
+    box-shadow: 0 0 0 1px var(--border-light);
+    background: none;
+    cursor: pointer;
+    transition: 0.2s;
+}
+#settingsModal .color-name-btn input.color-swatch-btn::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 999px;
+}
+#settingsModal .color-name-btn input.color-swatch-btn::-webkit-color-swatch {
+    border: none;
+    border-radius: 999px;
+}
+#settingsModal .color-name-btn input.color-swatch-btn::-moz-color-swatch {
+    border: none;
+    border-radius: 999px;
+}
+
+.modal .row-2 {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.modal .row-2 .form-group {
+    flex: 1;
+    min-width: 80px;
+}
+
+.modal .modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+.modal .modal-actions button {
+    padding: 10px 28px;
+    border-radius: 40px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.2s;
+}
+.modal .modal-actions .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(45, 122, 255, 0.3);
+}
+.modal .modal-actions .btn-secondary {
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+}
+.modal .modal-actions .btn-danger {
+    background: var(--over);
+    color: var(--over-text);
+    border: 1px solid #f5c2c2;
+}
+
+/* responsive: shared shell pieces (top bar, tabs, modal base) */
+@media (max-width: 600px) {
+    .tabs {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .tab-btn {
+        justify-content: center;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+    }
+    .modal {
+        padding: 20px 16px;
+    }
+    .modal .row-2 {
+        flex-direction: column;
+    }
+    .top-bar {
+        border-radius: 32px;
+        padding: 8px 16px;
+    }
+}
