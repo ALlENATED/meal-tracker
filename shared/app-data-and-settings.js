@@ -6,6 +6,12 @@
        saved meals, and all the little "what's currently selected/
        being edited" tracking variables used while a popup is open
      - loading/saving everything to the browser's storage
+     - MACRO_TARGETS — the daily calorie/protein/carbs/fat/fiber/
+       sugar goals — user-editable via the Settings popup's "Daily
+       Targets" fields (updateMacroTarget()); everything that shows
+       "X of Y" against a target (the calorie donut, macro progress
+       bars, weekly chart target line, calendar over-target markers)
+       just reads this same object
      - the color/theme settings (macro colors, chart under/over
        colors, the Weight chart's line color, accent color, calorie
        donut color, dark/light mode), which macros the Calendar
@@ -48,7 +54,10 @@
 // ============================================================
 //  STATE
 // ============================================================
-const MACRO_TARGETS = { calories: 2200, protein: 150, carbs: 220, fat: 70, fiber: 30, sugar: 50 };
+// Was a fixed `const` — now `let` and user-editable (see updateMacroTarget()
+// and the "Daily Targets" section in the Settings popup) so these numbers
+// are just the built-in defaults for anyone who hasn't set their own yet.
+let MACRO_TARGETS = { calories: 2200, protein: 150, carbs: 220, fat: 70, fiber: 30, sugar: 50 };
 let today = toLocalDateStr(new Date());
 let dailyLog = JSON.parse(localStorage.getItem('dailyLog_' + today)) || [];
 let dailyHistory = JSON.parse(localStorage.getItem('dailyHistory')) || {};
@@ -98,6 +107,7 @@ function loadSettings() {
     if (saved) {
         try {
             const parsed = JSON.parse(saved);
+            if (parsed.macroTargets) Object.assign(MACRO_TARGETS, parsed.macroTargets);
             if (parsed.macroColors) Object.assign(macroColors, parsed.macroColors);
             if (parsed.chartColors) Object.assign(chartColors, parsed.chartColors);
             if (parsed.glowColor) glowColor = parsed.glowColor;
@@ -225,6 +235,7 @@ function applyAccentToBody(color) {
 
 function saveSettings() {
     localStorage.setItem('tracker_settings', JSON.stringify({
+        macroTargets: MACRO_TARGETS,
         macroColors,
         chartColors,
         glowColor,
@@ -392,6 +403,12 @@ function setColorSwatch(id, color) {
 }
 
 function openSettingsModal() {
+    document.getElementById('targetCalories').value = MACRO_TARGETS.calories;
+    document.getElementById('targetProtein').value = MACRO_TARGETS.protein;
+    document.getElementById('targetCarbs').value = MACRO_TARGETS.carbs;
+    document.getElementById('targetFat').value = MACRO_TARGETS.fat;
+    document.getElementById('targetFiber').value = MACRO_TARGETS.fiber;
+    document.getElementById('targetSugar').value = MACRO_TARGETS.sugar;
     document.getElementById('colorProtein').value = macroColors.protein;
     setColorSwatch('colorProtein', macroColors.protein);
     document.getElementById('colorCarbs').value = macroColors.carbs;
@@ -436,6 +453,28 @@ function renderCategorySettings() {
     ).join('');
     container.innerHTML +=
         `<button onclick="openAddCategoryModal()" style="background:var(--bg-input); border:1px solid var(--border-light); border-radius:30px; padding:6px 16px; margin-top:8px; cursor:pointer; color:var(--text-primary); font-weight:500; transition:0.15s;"><i class="fas fa-plus"></i> Add Category</button>`;
+}
+
+// Daily calorie/macro targets, set in the Settings popup's "Daily Targets"
+// section. Every other place that reads MACRO_TARGETS (the calorie donut,
+// the macro progress bars, the weekly chart's target line/over-limit
+// coloring, the calendar's over-target markers) just reads this same
+// object, so updating it here and re-rendering is all that's needed.
+// Guards against an empty/zero/negative/non-numeric value — which would
+// otherwise divide-by-zero in the macro progress-bar math elsewhere — by
+// simply ignoring the edit and resetting the field back to the current
+// real value instead of saving something broken.
+function updateMacroTarget(key, value) {
+    const num = parseFloat(value);
+    const input = document.getElementById('target' + key.charAt(0).toUpperCase() + key.slice(1));
+    if (!isFinite(num) || num <= 0) {
+        if (input) input.value = MACRO_TARGETS[key];
+        return;
+    }
+    MACRO_TARGETS[key] = num;
+    saveSettings();
+    renderDashboard();
+    renderCalendar();
 }
 
 function updateMacroColor(macro, color) {

@@ -567,6 +567,22 @@
                     <button class="modal-close" onclick="closeSettingsModal()">&times;</button>
                 </div>
                 <div class="form-group">
+                    <label>Daily Targets</label>
+                    <div class="row-2">
+                        <div class="form-group"><label>Calories (kcal)</label><input type="number" id="targetCalories" step="1" min="1" onchange="updateMacroTarget('calories', this.value)"></div>
+                        <div class="form-group"><label>Protein (g)</label><input type="number" id="targetProtein" step="1" min="1" onchange="updateMacroTarget('protein', this.value)"></div>
+                    </div>
+                    <div class="row-2">
+                        <div class="form-group"><label>Carbs (g)</label><input type="number" id="targetCarbs" step="1" min="1" onchange="updateMacroTarget('carbs', this.value)"></div>
+                        <div class="form-group"><label>Fat (g)</label><input type="number" id="targetFat" step="1" min="1" onchange="updateMacroTarget('fat', this.value)"></div>
+                    </div>
+                    <div class="row-2">
+                        <div class="form-group"><label>Fiber (g)</label><input type="number" id="targetFiber" step="1" min="1" onchange="updateMacroTarget('fiber', this.value)"></div>
+                        <div class="form-group"><label>Sugar (g)</label><input type="number" id="targetSugar" step="1" min="1" onchange="updateMacroTarget('sugar', this.value)"></div>
+                    </div>
+                    <div style="font-size:0.65rem; color:var(--text-muted); margin-top:4px;">These drive the calorie donut, the macro progress bars, the weekly chart's target line, and the calendar's over-target markers</div>
+                </div>
+                <div class="form-group">
                     <div class="color-setting-row">
                         <label class="color-name-btn">
                             <input type="color" class="color-swatch-btn" id="colorDonutRemaining" value="#dce3ec" onchange="updateDonutRemainingColor(this.value)">
