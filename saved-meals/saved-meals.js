@@ -41,12 +41,20 @@ function renderSavedMeals() {
         const instrHtml = m.instructions && m.instructions.trim().length > 0 ?
             `<div class="instructions">${m.instructions}</div>` :
             '';
+        // Only shown for a meal with a "Total cooked weight" set — a quick
+        // visual flag, from the Saved Meals tab itself, of which meals will
+        // ask for a portion size (vs. log the whole thing instantly) when
+        // added from the Dashboard's Add Food popup.
+        const cookedWeightHtml = m.cookedWeight ?
+            `<div class="cooked-weight-badge"><i class="fas fa-scale-balanced"></i> Cooks to ${m.cookedWeight}g</div>` :
+            '';
         return `
             <div class="saved-meal-card" onclick="openEditMealModal(${idx})">
                 ${picHtml}
                 <div class="name"><span class="meal-icon">${icon}</span> ${m.name}</div>
                 <div class="items">${m.items.length} items</div>
                 <div class="kcal">${Math.round(totalKcal)} kcal</div>
+                ${cookedWeightHtml}
                 ${instrHtml}
             </div>
         `;
@@ -64,6 +72,7 @@ function openEditMealModal(idx) {
     tempMealItems = meal.items.map(i => ({ ...i }));
     renderIconPicker();
     renderMealItems();
+    document.getElementById('mealCookedWeightInput').value = meal.cookedWeight || '';
     document.getElementById('mealInstructionsInput').value = meal.instructions || '';
     if (meal.pictureDataURL) {
         document.getElementById('mealPictureInput').value = '';
@@ -92,6 +101,7 @@ function openSaveMealFromCurrentLog() {
     tempMealItems = [];
     renderIconPicker();
     renderMealItems();
+    document.getElementById('mealCookedWeightInput').value = '';
     document.getElementById('mealInstructionsInput').value = '';
     document.getElementById('mealPictureInput').value = '';
     document.getElementById('mealPictureFile').value = '';
@@ -128,13 +138,41 @@ function renderMealItems() {
     list.innerHTML = tempMealItems.map((item, idx) =>
         `<div class="meal-detail-item">
             <span>${item.name} (${item.amount||''}${item.unit||''}) - ${Math.round(item.kcal)} kcal</span>
-            <button onclick="removeMealItem(${idx})" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 8px; border-radius:6px; transition:0.15s;"><i class="fas fa-times"></i></button>
+            <span style="display:flex; gap:2px;">
+                <button onclick="editMealItemAmount(${idx})" title="Change amount" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 8px; border-radius:6px; transition:0.15s;"><i class="fas fa-pen"></i></button>
+                <button onclick="removeMealItem(${idx})" title="Remove" style="background:none; border:none; color:var(--text-muted); cursor:pointer; padding:4px 8px; border-radius:6px; transition:0.15s;"><i class="fas fa-times"></i></button>
+            </span>
         </div>`
     ).join('');
 }
 
 function removeMealItem(idx) {
     tempMealItems.splice(idx, 1);
+    renderMealItems();
+}
+
+// Lets you change an already-added ingredient's amount while building/
+// editing a meal, instead of having to remove it and add it back with the
+// new amount. Re-looks-up the ingredient by name (same pattern as the
+// Dashboard's own editFoodItem()) to recompute its macros at the new
+// amount — same unit as before, since changing units isn't asked for here.
+function editMealItemAmount(idx) {
+    const item = tempMealItems[idx];
+    if (!item) return;
+    const newAmountStr = prompt(`Enter new amount for ${item.name} (${item.unit || 'g'}):`, item.amount);
+    if (newAmountStr === null) return;
+    const amount = parseFloat(newAmountStr);
+    if (isNaN(amount) || amount <= 0) {
+        alert('Please enter a valid amount.');
+        return;
+    }
+    const ing = INGREDIENTS.find(i => i.name === item.name);
+    if (!ing) {
+        alert("Can't find this ingredient anymore to recalculate its macros — remove it and add it again instead.");
+        return;
+    }
+    const macros = parseAmount(ing, amount, item.unit || 'g');
+    tempMealItems[idx] = { name: item.name, ...macros, amount, unit: item.unit || 'g' };
     renderMealItems();
 }
 
@@ -185,10 +223,19 @@ function confirmSaveMeal() {
     let pictureUrl = document.getElementById('mealPictureInput').value.trim();
     if (pictureDataURL) pictureUrl = '';
 
+    // Optional — see the "Total cooked weight" field above. A blank/0/
+    // invalid value is stored as null, which is exactly what
+    // loadSavedMealFromModal() (dashboard.js) checks to decide whether
+    // tapping this meal should ask for a portion or just log it whole,
+    // same as always.
+    const cookedWeightRaw = parseFloat(document.getElementById('mealCookedWeightInput').value);
+    const cookedWeight = (isFinite(cookedWeightRaw) && cookedWeightRaw > 0) ? cookedWeightRaw : null;
+
     const mealData = {
         name,
         icon: selectedMealIcon,
         items: tempMealItems.map(i => ({ ...i })),
+        cookedWeight,
         instructions: instructions || '',
         pictureDataURL: pictureDataURL,
         pictureUrl: pictureUrl

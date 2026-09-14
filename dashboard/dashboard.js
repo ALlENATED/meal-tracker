@@ -869,9 +869,27 @@ function toggleMealItems(btn) {
 function editFoodItem(idx) {
     const item = dailyLog[idx];
     if (!item) return;
+
+    // A logged cooked-portion entry (see the COOKED PORTION FEATURE block
+    // below) isn't a real ingredient, so it can't go through the regular
+    // "look it up in INGREDIENTS and rescale" path below — reopen the same
+    // portion popup instead, using the raw totals/cooked weight already
+    // saved on the entry itself, and update it in place on confirm.
+    if (item.isRecipePortion) {
+        openPortionModal({
+            rawTotals: item.recipeRawTotals,
+            cookedWeight: item.recipeCookedWeight,
+            mealName: item.name,
+            mealIcon: item.mealIcon,
+            editingLogIdx: idx,
+            initialAmount: item.amount
+        });
+        return;
+    }
+
     const newAmount = prompt('Enter new amount:', item.amount);
     if (newAmount === null) return;
-    const newUnit = prompt('Enter new unit (g/ml/pc):', item.unit || 'g');
+    const newUnit = prompt('Enter new unit (g/ml/tbsp/tsp/pc):', item.unit || 'g');
     if (newUnit === null) return;
     const amount = parseFloat(newAmount);
     if (isNaN(amount) || amount <= 0) return;
@@ -1098,6 +1116,15 @@ function loadSavedMealFromModal(idx) {
     const meal = savedMeals[idx];
     if (!meal) return;
 
+    // A meal with a "Total cooked weight" set (Save/Edit Meal popup) asks
+    // for a portion size and scales the macros down instead of logging the
+    // whole recipe — see the COOKED PORTION FEATURE block below. Any other
+    // meal keeps working exactly like before: logged instantly, in full.
+    if (meal.cookedWeight && meal.cookedWeight > 0) {
+        openPortionModalForMeal(idx);
+        return;
+    }
+
     const mealId = 'meal_' + Date.now() + '_' + idx;
     meal.items.forEach(item => {
         dailyLog.push({
@@ -1111,7 +1138,156 @@ function loadSavedMealFromModal(idx) {
     closeAddFoodModal();
     renderDashboard();
     renderCalendar();
+    scrollFoodLogToBottom();
 }
+
+// ============================================================
+//  COOKED PORTION FEATURE
+// ============================================================
+// For a saved meal you cook as a batch (raw ingredients that shrink/
+// change down to some final cooked weight) and then eat a portion of —
+// see the "Total cooked weight" field in the Save/Edit Meal popup
+// (saved-meals.js/index.html). Tapping such a meal from Add Food opens
+// #portionModal instead of logging the whole thing: you enter how many
+// grams of the COOKED dish you're actually eating, and it works out what
+// fraction of the whole batch that is, then scales the RAW ingredient
+// totals by that same fraction — exactly the math you'd do by hand
+// (e.g. 150g portion of a 380g cooked batch = 39.5% of it, so you get
+// 39.5% of the raw macros). Only one combined log entry is created for
+// the portion (not one per original ingredient) since once everything's
+// mixed and cooked together, splitting the portion back out per
+// ingredient wouldn't mean anything.
+//
+// portionModalState holds whichever meal/log-entry is currently open in
+// the popup: { rawTotals, cookedWeight, mealName, mealIcon,
+// editingLogIdx, initialAmount, lastScaled }. editingLogIdx is null for a
+// fresh "log a new portion" (loadSavedMealFromModal/
+// openPortionModalForMeal) and set to a dailyLog index when re-opened
+// from editFoodItem() to change an already-logged portion's size.
+let portionModalState = null;
+
+function openPortionModalForMeal(mealIdx) {
+    const meal = savedMeals[mealIdx];
+    if (!meal) return;
+    const rawTotals = meal.items.reduce((s, i) => ({
+        kcal: s.kcal + (i.kcal || 0),
+        protein: s.protein + (i.protein || 0),
+        carbs: s.carbs + (i.carbs || 0),
+        fat: s.fat + (i.fat || 0),
+        fiber: s.fiber + (i.fiber || 0),
+        sugar: s.sugar + (i.sugar || 0)
+    }), { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 });
+
+    openPortionModal({
+        rawTotals,
+        cookedWeight: meal.cookedWeight,
+        mealName: meal.name,
+        mealIcon: meal.icon || '🍽️',
+        editingLogIdx: null,
+        initialAmount: ''
+    });
+}
+
+function openPortionModal(state) {
+    portionModalState = state;
+    const editing = state.editingLogIdx !== null && state.editingLogIdx !== undefined;
+    document.getElementById('portionModalTitle').innerText = editing ? 'Edit Portion' : 'Log a Portion';
+    document.getElementById('portionConfirmBtn').innerHTML = editing
+        ? '<i class="fas fa-check"></i> Save Changes'
+        : '<i class="fas fa-check"></i> Add to Today\'s Log';
+    document.getElementById('portionMealName').innerText = (state.mealIcon || '🍽️') + ' ' + state.mealName;
+    document.getElementById('portionRawCal').innerText = Math.round(state.rawTotals.kcal) + ' kcal';
+    document.getElementById('portionRawProtein').innerText = state.rawTotals.protein.toFixed(1) + 'g';
+    document.getElementById('portionRawCarbs').innerText = state.rawTotals.carbs.toFixed(1) + 'g';
+    document.getElementById('portionRawFat').innerText = state.rawTotals.fat.toFixed(1) + 'g';
+    document.getElementById('portionRawFiber').innerText = state.rawTotals.fiber.toFixed(1) + 'g';
+    document.getElementById('portionRawSugar').innerText = state.rawTotals.sugar.toFixed(1) + 'g';
+    document.getElementById('portionCookedWeight').innerText = state.cookedWeight + 'g';
+    document.getElementById('portionAmountInput').value = state.initialAmount || '';
+    updatePortionPreview();
+    document.getElementById('portionModal').classList.add('show');
+}
+
+function closePortionModal() {
+    document.getElementById('portionModal').classList.remove('show');
+    portionModalState = null;
+}
+
+function updatePortionPreview() {
+    if (!portionModalState) return;
+    const amount = parseFloat(document.getElementById('portionAmountInput').value);
+    const { rawTotals, cookedWeight } = portionModalState;
+    const valid = isFinite(amount) && amount > 0 && cookedWeight > 0;
+    const fraction = valid ? (amount / cookedWeight) : 0;
+
+    document.getElementById('portionFractionLine').innerText = valid
+        ? `${amount}g ÷ ${cookedWeight}g = ${(fraction * 100).toFixed(1)}% of the meal`
+        : 'Enter your portion to see the math.';
+
+    const scaled = {
+        kcal: rawTotals.kcal * fraction,
+        protein: rawTotals.protein * fraction,
+        carbs: rawTotals.carbs * fraction,
+        fat: rawTotals.fat * fraction,
+        fiber: rawTotals.fiber * fraction,
+        sugar: rawTotals.sugar * fraction
+    };
+    document.getElementById('portionOutCal').innerText = Math.round(scaled.kcal) + ' kcal';
+    document.getElementById('portionOutProtein').innerText = scaled.protein.toFixed(1) + 'g';
+    document.getElementById('portionOutCarbs').innerText = scaled.carbs.toFixed(1) + 'g';
+    document.getElementById('portionOutFat').innerText = scaled.fat.toFixed(1) + 'g';
+    document.getElementById('portionOutFiber').innerText = scaled.fiber.toFixed(1) + 'g';
+    document.getElementById('portionOutSugar').innerText = scaled.sugar.toFixed(1) + 'g';
+
+    portionModalState.lastScaled = scaled;
+}
+
+function confirmPortionLog() {
+    if (!portionModalState) return;
+    const amount = parseFloat(document.getElementById('portionAmountInput').value);
+    if (!isFinite(amount) || amount <= 0) {
+        alert('Please enter a valid portion amount.');
+        return;
+    }
+    updatePortionPreview();
+    const { mealName, mealIcon, cookedWeight, rawTotals, editingLogIdx, lastScaled } = portionModalState;
+    const entry = {
+        name: mealName,
+        mealIcon: mealIcon || '🍽️',
+        amount,
+        unit: 'g',
+        kcal: lastScaled.kcal,
+        protein: lastScaled.protein,
+        carbs: lastScaled.carbs,
+        fat: lastScaled.fat,
+        fiber: lastScaled.fiber,
+        sugar: lastScaled.sugar,
+        // Kept on the entry itself (not looked up from savedMeals again
+        // later) so editing this portion afterward — see editFoodItem() —
+        // still works correctly even if the original saved meal is later
+        // renamed, edited, or deleted.
+        isRecipePortion: true,
+        recipeCookedWeight: cookedWeight,
+        recipeRawTotals: rawTotals
+    };
+
+    const isNew = editingLogIdx === null || editingLogIdx === undefined;
+    if (isNew) {
+        dailyLog.push(entry);
+    } else {
+        dailyLog[editingLogIdx] = entry;
+    }
+
+    closePortionModal();
+    closeAddFoodModal();
+    renderDashboard();
+    renderCalendar();
+    if (isNew) scrollFoodLogToBottom();
+}
+
+document.getElementById('portionModal')?.addEventListener('click', function (e) {
+    if (e.target === this) closePortionModal();
+});
 
 function addFoodFromModal() {
     if (!selectedIngredient) {
@@ -1129,6 +1305,24 @@ function addFoodFromModal() {
     closeAddFoodModal();
     renderDashboard();
     renderCalendar();
+    scrollFoodLogToBottom();
+}
+
+// Scrolls Today's food log (#todayLog, which scrolls internally — see
+// .food-log in dashboard.css) down to whatever was just added, instead of
+// leaving the list scrolled wherever it happened to be and making you
+// scroll down yourself to see it. Only called right after something is
+// actually ADDED (here, loadSavedMealFromModal, and confirmPortionLog) —
+// never from inside renderDashboard() itself, so deleting an item, editing
+// one, or any unrelated re-render doesn't yank your scroll position
+// around. The rAF wait is just to let the newly-rendered items actually
+// exist in the DOM (renderDashboard() just replaced #todayLog's innerHTML)
+// before measuring scrollHeight.
+function scrollFoodLogToBottom() {
+    requestAnimationFrame(function () {
+        const log = document.getElementById('todayLog');
+        if (log) log.scrollTop = log.scrollHeight;
+    });
 }
 
 document.getElementById('addFoodModal').addEventListener('click', function(e) {

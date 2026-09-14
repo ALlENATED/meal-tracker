@@ -430,6 +430,8 @@
                         <select id="modalUnit">
                             <option value="g">g</option>
                             <option value="ml">ml</option>
+                            <option value="tbsp">tbsp</option>
+                            <option value="tsp">tsp</option>
                             <option value="pc">pc</option>
                         </select>
                     </div>
@@ -445,6 +447,54 @@
             </div>
         </div>
         <!-- ===== END POPUP: Add Food ===== -->
+
+        <!-- ===== POPUP: Log a Portion — dashboard/dashboard.css + dashboard/dashboard.js.
+             Opens instead of instantly logging a saved meal, for any meal that has a
+             "Total cooked weight" set (see the Save/Edit Meal popup above). Also reused
+             to EDIT an already-logged portion (dashboard.js's editFoodItem() reopens this
+             same popup for a log entry that has isRecipePortion:true), so its title/button
+             text change between "Log a Portion" / "Add to Today's Log" and
+             "Edit Portion" / "Save Changes" depending on which case it's in. ===== -->
+        <div class="modal-overlay" id="portionModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <h2><i class="fas fa-scale-balanced" style="color:var(--accent);"></i> <span id="portionModalTitle">Log a Portion</span></h2>
+                    <button class="modal-close" onclick="closePortionModal()">&times;</button>
+                </div>
+                <div style="font-weight:700; margin-bottom:10px;" id="portionMealName"></div>
+                <div class="portion-calc-block">
+                    <div class="portion-calc-title">Raw ingredient totals</div>
+                    <div class="portion-calc-line"><span>Calories</span><span id="portionRawCal">0 kcal</span></div>
+                    <div class="portion-calc-line"><span>Protein</span><span id="portionRawProtein">0g</span></div>
+                    <div class="portion-calc-line"><span>Carbs</span><span id="portionRawCarbs">0g</span></div>
+                    <div class="portion-calc-line"><span>Fat</span><span id="portionRawFat">0g</span></div>
+                    <div class="portion-calc-line"><span>Fiber</span><span id="portionRawFiber">0g</span></div>
+                    <div class="portion-calc-line"><span>Sugar</span><span id="portionRawSugar">0g</span></div>
+                    <div class="portion-calc-line total"><span>Total cooked weight</span><span id="portionCookedWeight">0g</span></div>
+                </div>
+                <div class="form-group">
+                    <label>Your portion (g)</label>
+                    <input type="number" id="portionAmountInput" step="1" min="1" oninput="updatePortionPreview()">
+                </div>
+                <div class="portion-fraction-line" id="portionFractionLine">Enter your portion to see the math.</div>
+                <div class="portion-calc-block">
+                    <div class="portion-calc-title">This portion's macros</div>
+                    <div class="portion-calc-line total"><span>Calories</span><span id="portionOutCal">0 kcal</span></div>
+                    <div class="portion-macro-pill-row">
+                        <span class="portion-macro-pill" style="background:var(--protein-color);">Protein <span id="portionOutProtein">0g</span></span>
+                        <span class="portion-macro-pill" style="background:var(--carbs-color);">Carbs <span id="portionOutCarbs">0g</span></span>
+                        <span class="portion-macro-pill" style="background:var(--fat-color);">Fat <span id="portionOutFat">0g</span></span>
+                        <span class="portion-macro-pill" style="background:var(--fiber-color);">Fiber <span id="portionOutFiber">0g</span></span>
+                        <span class="portion-macro-pill" style="background:var(--sugar-color);">Sugar <span id="portionOutSugar">0g</span></span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn-secondary" onclick="closePortionModal()">Cancel</button>
+                    <button class="btn-primary" id="portionConfirmBtn" onclick="confirmPortionLog()"><i class="fas fa-check"></i> Add to Today's Log</button>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Log a Portion ===== -->
 
         <!-- ===== POPUP: Date Picker — dashboard/dashboard.css + dashboard/dashboard.js ===== -->
         <div class="modal-overlay" id="datePickerModal">
@@ -504,6 +554,16 @@
                         <button onclick="openIngredientSelectionModal()" class="add-ingredient-btn" style="padding:6px 20px; font-size:0.8rem;"><i class="fas fa-plus"></i> Add ingredient</button>
                     </div>
                 </div>
+                <!-- ===== COOKED PORTION FEATURE: optional cooked weight — dashboard.js reads
+                     savedMeals[i].cookedWeight to decide whether tapping this meal opens the
+                     Log a Portion popup (#portionModal, below the Add Food popup) instead of
+                     logging the whole meal instantly. Leaving this blank keeps a meal working
+                     exactly like before. ===== -->
+                <div class="form-group">
+                    <label>Total cooked weight (g) — optional</label>
+                    <input type="number" id="mealCookedWeightInput" step="1" min="1" placeholder="e.g. 380">
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:5px;">Leave this blank for a meal you eat all at once. Fill it in (the weight of the whole dish once it's cooked) and tapping this meal from Add Food will ask for your portion size instead, and scale the macros for you.</div>
+                </div>
                 <div class="form-group">
                     <label>Instructions (optional)</label>
                     <textarea id="mealInstructionsInput" placeholder="e.g. Cook pasta, add sauce, bake for 20 min..." rows="2"></textarea>
@@ -547,6 +607,8 @@
                         <select id="ingredientSelectionUnit">
                             <option value="g">g</option>
                             <option value="ml">ml</option>
+                            <option value="tbsp">tbsp</option>
+                            <option value="tsp">tsp</option>
                             <option value="pc">pc</option>
                         </select>
                     </div>

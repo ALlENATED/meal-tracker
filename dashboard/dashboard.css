@@ -234,14 +234,14 @@
     z-index: 1;
 }
 .donut-section .donut-center-text .big {
-    font-size: 0.900rem;
+    font-size: clamp(0.879rem, 2.984cqw, 1.415rem);
     font-weight: 700;
     letter-spacing: -1px;
     display: block;
     color: var(--text-primary);
 }
 .donut-section .donut-center-text .target {
-    font-size: 0.500rem;
+    font-size: clamp(0.322rem, 1.094cqw, 0.52rem);
     font-weight: 500;
     color: var(--text-muted);
     display: block;
@@ -250,7 +250,7 @@
     /* Bumped up from clamp(0.322rem, 1.094cqw, 0.52rem) and pulled closer
        to the "of X kcal" line above (margin-top 3px -> 0px) per request —
        phone mode (<=460px) keeps its own separate size below, untouched. */
-    font-size: 0.600rem;
+    font-size: clamp(0.4rem, 1.36cqw, 0.65rem);
     display: inline-block;
     background: var(--badge-bg);
     padding: 2px 10px;
@@ -334,7 +334,7 @@
     /* Nudged down from 0.6rem so every macro name — "Protein" in
        particular — reliably fits on a single line instead of wrapping
        to a second row inside this narrow column. */
-    font-size: 0.50rem;
+    font-size: 0.55rem;
     text-transform: uppercase;
     font-weight: 700;
     color: var(--text-muted);
@@ -437,11 +437,11 @@
    far at its widest point. */
 @keyframes overLimitGlowOutline {
     0%, 100% {
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--glow-color) 25%, transparent),
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--glow-color) 21%, transparent),
                     0 0 1.4px color-mix(in srgb, var(--glow-color) 55%, transparent);
     }
     50% {
-        box-shadow: 0 0 0 6px color-mix(in srgb, var(--glow-color) 0%, transparent),
+        box-shadow: 0 0 0 9px color-mix(in srgb, var(--glow-color) 0%, transparent),
                     0 0 2px color-mix(in srgb, var(--glow-color) 21%, transparent);
     }
 }
@@ -837,13 +837,11 @@
         height: clamp(106px, 31.24cqw, 149px) !important;
     }
     .donut-section .donut-center-text .big {
-        font-size: 0.900rem;
+        font-size: clamp(1.23rem, 5.77cqw, 1.72rem);
     }
-    .donut-section .donut-center-text .target {
-        font-size: 0.500rem;
-    }
+    .donut-section .donut-center-text .target,
     .donut-section .donut-center-text .left {
-        font-size: 0.600rem;
+        font-size: clamp(0.452rem, 2.119cqw, 0.632rem);
     }
     .macro-vertical-group {
         min-width: 0;
@@ -898,4 +896,63 @@
     .chart-box.weight-box {
         height: 151px;
     }
+}
+
+/* ============================================================
+   COOKED PORTION FEATURE — #portionModal (in index.html, right after
+   the Add Food popup)
+   ============================================================
+   Shown instead of instantly logging a saved meal, for any meal that
+   has a "Total cooked weight" set in the Save/Edit Meal popup (see
+   saved-meals.css/js) — lets the user enter how much of the cooked
+   dish they're eating and see the scaled-down macros before adding
+   them to today's log. dashboard.js's openPortionModal()/
+   updatePortionPreview()/confirmPortionLog() drive all of this. */
+.portion-calc-block {
+    background: var(--bg-input);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin: 10px 0;
+}
+.portion-calc-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+.portion-calc-line {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    padding: 3px 0;
+    color: var(--text-secondary);
+}
+.portion-calc-line.total {
+    border-top: 1px solid var(--border-light);
+    margin-top: 6px;
+    padding-top: 8px;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+.portion-fraction-line {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 4px 0 2px;
+}
+.portion-macro-pill-row {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+.portion-macro-pill {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: #fff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }

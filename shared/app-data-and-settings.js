@@ -276,6 +276,15 @@ function saveState() {
     saveSettings();
 }
 
+// Standard cooking conversions used to turn a tbsp/tsp amount into a
+// grams-equivalent before scaling against an ingredient's per-100g macros
+// below — same approximation most nutrition apps use (1 tbsp ≈ 15g,
+// 1 tsp ≈ 5g), since ingredients here store their macros per 100g of
+// weight, not per unit of volume. "g" and "ml" both already scale 1:1
+// (ml has always been treated as gram-equivalent here too — that's not
+// new), so they aren't listed and just fall through to the "|| 1" default.
+const GRAMS_PER_UNIT = { tbsp: 15, tsp: 5 };
+
 function parseAmount(ing, amount, unit) {
     if (unit === 'pc') {
         return {
@@ -287,7 +296,8 @@ function parseAmount(ing, amount, unit) {
             sugar: ing.sugar * amount
         };
     }
-    const f = amount / 100;
+    const gramsEquivalent = amount * (GRAMS_PER_UNIT[unit] || 1);
+    const f = gramsEquivalent / 100;
     return {
         kcal: ing.kcal * f,
         protein: ing.protein * f,
