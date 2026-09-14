@@ -25,10 +25,16 @@
    ============================================================ */
 
 window.FIREBASE_CONFIG = {
-    apiKey: "PASTE_YOUR_API_KEY_HERE",
-    authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
-    projectId: "PASTE_YOUR_PROJECT_ID_HERE",
-    storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
-    messagingSenderId: "PASTE_YOUR_MESSAGING_SENDER_ID_HERE",
-    appId: "PASTE_YOUR_APP_ID_HERE"
+    apiKey: "AIzaSyD4nSBqcmSZsIMg-7uPSq_k-oCyjyRqTw4",
+
+  authDomain: "meal-tracker-a7ebd.firebaseapp.com",
+
+  projectId: "meal-tracker-a7ebd",
+
+  storageBucket: "meal-tracker-a7ebd.firebasestorage.app",
+
+  messagingSenderId: "225230272638",
+
+  appId: "1:225230272638:web:d5f9f24badc5374012802f"
+
 };
