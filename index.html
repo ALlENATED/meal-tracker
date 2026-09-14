@@ -806,7 +806,12 @@
         applyAccentToBody(userAccentColor);
         document.body.style.setProperty('--glow-color', glowColor, 'important');
 
-        document.getElementById('lightIcon').classList.add('active');
+        // Apply whichever theme loadSettings() just loaded (defaults to
+        // 'dark' if nothing's been saved yet) — this used to always force
+        // light mode here regardless of what was chosen before.
+        document.body.classList.toggle('dark', currentTheme === 'dark');
+        document.getElementById('lightIcon').classList.toggle('active', currentTheme === 'light');
+        document.getElementById('darkIcon').classList.toggle('active', currentTheme === 'dark');
         renderDashboard();
         renderSavedMeals();
         renderWeightTab();

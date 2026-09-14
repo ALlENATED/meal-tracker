@@ -20,6 +20,10 @@
        them — including painting each color button in that popup
        with the color it's currently set to (setColorSwatch()), so
        the chosen color is visible right on the button
+     - currentTheme ('light' or 'dark') — set via the sun/moon icons
+       (setTheme()), saved like every other setting, and defaults to
+       'dark' for anyone who hasn't picked yet, so dark is the app's
+       default look on a fresh install/device
      - small helper functions used all over the app: parseAmount(),
        getWeekDates(), formatDate(), getMonthName()
      - switching between tabs (Dashboard / Ingredients / Saved Meals
@@ -78,6 +82,12 @@ let mealPictureDataURL = null;
 
 let userAccentColor = '#2d7aff';
 
+// Light/dark mode. Was never actually saved anywhere before — every reload
+// silently reset to light. Now persisted in tracker_settings (see
+// setTheme(), loadSettings(), saveSettings()) and defaults to 'dark' for
+// anyone who hasn't chosen yet, so dark is the app's default look.
+let currentTheme = 'dark';
+
 let macroColors = {
     protein: '#e74c3c',
     carbs: '#f39c12',
@@ -108,6 +118,7 @@ function loadSettings() {
         try {
             const parsed = JSON.parse(saved);
             if (parsed.macroTargets) Object.assign(MACRO_TARGETS, parsed.macroTargets);
+            if (parsed.theme) currentTheme = parsed.theme;
             if (parsed.macroColors) Object.assign(macroColors, parsed.macroColors);
             if (parsed.chartColors) Object.assign(chartColors, parsed.chartColors);
             if (parsed.glowColor) glowColor = parsed.glowColor;
@@ -236,6 +247,7 @@ function applyAccentToBody(color) {
 function saveSettings() {
     localStorage.setItem('tracker_settings', JSON.stringify({
         macroTargets: MACRO_TARGETS,
+        theme: currentTheme,
         macroColors,
         chartColors,
         glowColor,
@@ -374,11 +386,13 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 //  THEME / ACCENT
 // ============================================================
 function setTheme(mode) {
+    currentTheme = mode;
     document.body.classList.toggle('dark', mode === 'dark');
     document.getElementById('lightIcon').classList.toggle('active', mode === 'light');
     document.getElementById('darkIcon').classList.toggle('active', mode === 'dark');
     applyAccentToBody(userAccentColor);
     applyColors();
+    saveSettings();
     renderDashboard();
 }
 
