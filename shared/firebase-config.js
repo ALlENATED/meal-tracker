@@ -24,7 +24,7 @@
    YOUR data.
    ============================================================ */
 
-const FIREBASE_CONFIG = {
+window.FIREBASE_CONFIG = {
     apiKey: "PASTE_YOUR_API_KEY_HERE",
     authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
     projectId: "PASTE_YOUR_PROJECT_ID_HERE",
