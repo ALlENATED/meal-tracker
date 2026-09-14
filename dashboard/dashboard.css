@@ -334,7 +334,7 @@
     /* Nudged down from 0.6rem so every macro name — "Protein" in
        particular — reliably fits on a single line instead of wrapping
        to a second row inside this narrow column. */
-    font-size: 0.55rem;
+    font-size: 0.50rem;
     text-transform: uppercase;
     font-weight: 700;
     color: var(--text-muted);
@@ -837,11 +837,13 @@
         height: clamp(106px, 31.24cqw, 149px) !important;
     }
     .donut-section .donut-center-text .big {
-        font-size: clamp(1.23rem, 5.77cqw, 1.72rem);
+        font-size: 0.900rem;
     }
-    .donut-section .donut-center-text .target,
+    .donut-section .donut-center-text .target {
+        font-size: 0.500rem;
+    }
     .donut-section .donut-center-text .left {
-        font-size: clamp(0.452rem, 2.119cqw, 0.632rem);
+        font-size: 0.600rem;
     }
     .macro-vertical-group {
         min-width: 0;
