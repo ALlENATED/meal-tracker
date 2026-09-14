@@ -189,6 +189,17 @@ function renderDashboard() {
     document.getElementById('fibVal').innerText = Math.round(fib);
     document.getElementById('sVal').innerText = Math.round(sug);
 
+    // The little "/150g" etc. next to each macro's number — these used to
+    // be hardcoded straight into index.html and never actually updated,
+    // which is why editing a macro target in Settings looked like it did
+    // nothing on the dashboard (the bar's fill height WAS changing behind
+    // the scenes, but this number sat frozen the whole time).
+    document.getElementById('pTargetVal').innerText = MACRO_TARGETS.protein;
+    document.getElementById('cTargetVal').innerText = MACRO_TARGETS.carbs;
+    document.getElementById('fTargetVal').innerText = MACRO_TARGETS.fat;
+    document.getElementById('fibTargetVal').innerText = MACRO_TARGETS.fiber;
+    document.getElementById('sTargetVal').innerText = MACRO_TARGETS.sugar;
+
     // percentages are based on the ROUNDED gram amounts (the same
     // numbers shown next to each bar) instead of the raw totals — a
     // trace amount like 0.3g that displays as "0" would otherwise
