@@ -341,7 +341,7 @@
     /* 56px is the smallest that still fits every macro name (e.g.
        "Protein"/"Fiber" wrapped to 2 lines) at this font-size without
        spilling past this column. */
-    max-width: 56px;
+    max-width: 50px;
     letter-spacing: 0.5px;
     display: flex;
     flex-direction: column;
