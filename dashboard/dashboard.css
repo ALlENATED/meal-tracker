@@ -234,14 +234,14 @@
     z-index: 1;
 }
 .donut-section .donut-center-text .big {
-    font-size: clamp(0.879rem, 2.984cqw, 1.415rem);
+    font-size: 0.900rem;
     font-weight: 700;
     letter-spacing: -1px;
     display: block;
     color: var(--text-primary);
 }
 .donut-section .donut-center-text .target {
-    font-size: clamp(0.322rem, 1.094cqw, 0.52rem);
+    font-size: 0.500rem;
     font-weight: 500;
     color: var(--text-muted);
     display: block;
@@ -250,7 +250,7 @@
     /* Bumped up from clamp(0.322rem, 1.094cqw, 0.52rem) and pulled closer
        to the "of X kcal" line above (margin-top 3px -> 0px) per request —
        phone mode (<=460px) keeps its own separate size below, untouched. */
-    font-size: clamp(0.4rem, 1.36cqw, 0.65rem);
+    font-size: 0.600rem;
     display: inline-block;
     background: var(--badge-bg);
     padding: 2px 10px;
