@@ -291,7 +291,12 @@ function renderDashboard() {
             // than the bare minimum means they always fully cover each
             // other's edge instead of just barely touching it.
             cutout: '75%',
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            // No click/hover behavior is wired up for this chart, so turn
+            // off Chart.js's pointer handling entirely — this is what was
+            // producing the hover effect (tooltip + slight highlight on
+            // the slice under the cursor).
+            events: [],
             responsive: true,
             // Was `true` — with no explicit aspectRatio set, that let
             // Chart.js compute its own internal drawing height from a
@@ -433,7 +438,10 @@ function renderDashboard() {
         },
         options: {
             cutout: '80%',
-            plugins: { legend: { display: false } },
+            plugins: { legend: { display: false }, tooltip: { enabled: false } },
+            // Same fix as #donutChart above — disables the hover
+            // tooltip/highlight, which isn't used for anything here.
+            events: [],
             responsive: true,
             // See the matching note on #donutChart's own options above —
             // same fix, same reason (keeps this ring's real drawn size
