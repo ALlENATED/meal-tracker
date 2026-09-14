@@ -437,11 +437,11 @@
    far at its widest point. */
 @keyframes overLimitGlowOutline {
     0%, 100% {
-        box-shadow: 0 0 0 4px color-mix(in srgb, var(--glow-color) 21%, transparent),
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--glow-color) 25%, transparent),
                     0 0 1.4px color-mix(in srgb, var(--glow-color) 55%, transparent);
     }
     50% {
-        box-shadow: 0 0 0 9px color-mix(in srgb, var(--glow-color) 0%, transparent),
+        box-shadow: 0 0 0 6px color-mix(in srgb, var(--glow-color) 0%, transparent),
                     0 0 2px color-mix(in srgb, var(--glow-color) 21%, transparent);
     }
 }
