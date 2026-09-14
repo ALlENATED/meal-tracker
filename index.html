@@ -309,6 +309,21 @@
                     <div class="food-log" id="todayLog">
                         <div class="empty">Nothing logged yet — tap "Add food" to start tracking today.</div>
                     </div>
+                    <!-- Selection total bar — shows a live combined kcal/macro
+                         total for whichever standalone items are checked in
+                         Today's food (the sel-check boxes + toggleItemSelect()
+                         in dashboard.js). Sits here as a normal sibling of
+                         #todayLog, collapsed to zero height by default — NOT
+                         an overlay — so opening it shrinks #todayLog to make
+                         room instead of covering an item. See "SELECTION TOTAL
+                         BAR" in dashboard.css for exactly how. -->
+                    <div class="selection-total-bar" id="selectionTotalBar">
+                        <div class="sel-bar-row1">
+                            <span><b id="selCount">0</b> selected · <b id="selKcal">0</b> kcal</span>
+                            <button class="sel-clear-btn" onclick="clearLogSelection()">Clear</button>
+                        </div>
+                        <div class="sel-bar-row2" id="selMacros"></div>
+                    </div>
                     <div class="food-actions">
                         <button class="primary" onclick="openAddFoodModal()"><i class="fas fa-plus"></i> Add food</button>
                         <button onclick="resetToday()" class="danger"><i class="fas fa-trash-alt"></i> Reset day</button>

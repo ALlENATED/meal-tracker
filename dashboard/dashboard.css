@@ -62,6 +62,10 @@
        Chart widget itself
      - the "Add food" popup (including its ingredient search
        dropdown and its "load a saved meal" quick-picker)
+     - the per-item macro-breakdown button/row and the multi-select
+       checkbox + #selectionTotalBar on today's food log — see
+       "SELECTION TOTAL BAR" and "PER-ITEM SELECT / MACRO EXPAND"
+       further down
 
    DEPENDS ON SHARED STYLING:
      Uses CSS variables and base looks defined in
@@ -334,19 +338,19 @@
     /* Nudged down from 0.6rem so every macro name — "Protein" in
        particular — reliably fits on a single line instead of wrapping
        to a second row inside this narrow column. */
-    font-size: 0.48rem;
+    font-size: 0.55rem;
     text-transform: uppercase;
     font-weight: 700;
     color: var(--text-muted);
     /* 56px is the smallest that still fits every macro name (e.g.
        "Protein"/"Fiber" wrapped to 2 lines) at this font-size without
        spilling past this column. */
-    max-width: 50px;
+    max-width: 56px;
     letter-spacing: 0.5px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 2px;
     text-align: center;
 }
 /* The macro name needs its OWN element (not just bare text inside the
@@ -591,6 +595,169 @@
     color: var(--text-muted);
     font-weight: 500;
 }
+
+/* ============================================================
+   SELECTION TOTAL BAR — #selectionTotalBar
+   ============================================================
+   Sits between #todayLog and .food-actions as a normal flex-column
+   sibling inside .food-card (see .food-card/.food-log/.food-actions
+   above) — deliberately NOT a position:absolute overlay. Collapsed to
+   zero height via max-height:0 while nothing's selected; adding .show
+   (see updateSelectionBar() in dashboard.js) animates it open, which
+   makes #todayLog (flex:1) shrink to make room automatically. Because
+   it's real layout space instead of something floating on top, it can
+   never end up covering a food item the way an overlay/popup would.
+   ============================================================ */
+.selection-total-bar {
+    flex-shrink: 0;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 0 12px;
+    font-size: 0.8rem;
+    transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease, padding 0.28s ease;
+}
+.selection-total-bar.show {
+    max-height: 140px;
+    opacity: 1;
+    margin-top: 10px;
+    padding: 9px 12px 11px;
+}
+.sel-bar-row1 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.sel-bar-row1 b {
+    color: var(--accent);
+}
+.sel-clear-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 2px 4px;
+}
+.sel-bar-row2 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+/* ============================================================
+   PER-ITEM SELECT / MACRO EXPAND (standalone items in #todayLog)
+   ============================================================
+   .item-main groups the checkbox + name together so .food-log .item
+   (unchanged, still justify-content:space-between above) keeps exactly
+   two flex children — .item-main on the left, the existing kcal/actions
+   group on the right — instead of the checkbox becoming a 3rd child
+   that space-between would spread out oddly.
+   ============================================================ */
+.food-log .item-main {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.food-log .sel-check {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+    border: 2px solid var(--border-light);
+    background: var(--bg-card-solid);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.15s;
+}
+.food-log .sel-check svg {
+    width: 11px;
+    height: 11px;
+    opacity: 0;
+    transition: 0.15s;
+}
+.food-log .item.selected {
+    background: var(--accent-soft);
+    border-radius: 10px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 0 -8px;
+}
+.food-log .item.selected .sel-check {
+    background: var(--accent);
+    border-color: var(--accent);
+}
+.food-log .item.selected .sel-check svg {
+    opacity: 1;
+}
+/* The round macro-expand button — 20x20px as requested (a bit under
+   the ~44px "easy tap target" size shown while comparing options, but
+   sized to fit comfortably among the existing kcal/edit/delete controls
+   without crowding them). */
+.macro-expand-btn {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-input);
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0;
+    transition: 0.15s;
+}
+.macro-expand-btn.open {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+.macro-detail-row {
+    display: none;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 8px 4px 6px 30px;
+}
+.macro-detail-row.show {
+    display: flex;
+}
+.macro-pill {
+    font-size: 0.63rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--bg-input);
+    color: var(--text-secondary);
+}
+.macro-pill .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.macro-pill .dot.protein { background: var(--protein-color); }
+.macro-pill .dot.carbs { background: var(--carbs-color); }
+.macro-pill .dot.fat { background: var(--fat-color); }
+.macro-pill .dot.fiber { background: var(--fiber-color); }
+.macro-pill .dot.sugar { background: var(--sugar-color); }
 
 /* Weekly Chart widget - ultra crisp & refined
    (taller than a plain default bar chart on purpose — see the height

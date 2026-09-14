@@ -11,6 +11,10 @@
        you're logging food for, or deleting a whole day's log)
      - the "Add food" popup: searching ingredients, picking one,
        loading a saved meal into today's log, and adding it
+     - per-item macro breakdown (the small round button on each
+       standalone food) and multi-select totals (the checkboxes +
+       #selectionTotalBar) in today's food log — see SELECTION +
+       PER-ITEM MACROS below
 
    NOTE ON THE CALORIE DONUT:
      The "Consumed" slice is a light-to-dark linear gradient instead
@@ -164,6 +168,18 @@
      dashboard/dashboard.css — edit that if you want to reorder or
      resize them, not this file.
    ============================================================ */
+
+// ============================================================
+//  SELECTION + PER-ITEM MACROS (today's food log)
+// ============================================================
+// Which standalone dailyLog indices are currently checked, to show a
+// combined total (see #selectionTotalBar below). This is intentionally
+// throwaway UI state, not saved anywhere — it's cleared at the top of
+// every renderDashboard() call (right before the log is rebuilt) rather
+// than carried across add/edit/delete/day-switch, since any of those
+// can shift dailyLog's indices out from under it. Only standalone items
+// (not items inside a saved-meal group) get a checkbox/macro button.
+let selectedLogIndices = new Set();
 
 // ============================================================
 //  RENDER: DASHBOARD
@@ -463,6 +479,9 @@ function renderDashboard() {
     });
 
     // Today's food log
+    // selectedLogIndices always starts empty on a fresh render — see the
+    // comment on its declaration above.
+    selectedLogIndices.clear();
     const logDiv = document.getElementById('todayLog');
     if (dailyLog.length === 0) {
         logDiv.innerHTML =
@@ -482,14 +501,27 @@ function renderDashboard() {
         let html = '';
         standalone.forEach(item => {
             html += `<div class="item">
-                <span>${item.name} (${item.amount||''}${item.unit||''})</span>
-                <div style="display:flex; align-items:center; gap:12px;">
+                <div class="item-main">
+                    <div class="sel-check" onclick="toggleItemSelect(${item.idx}, this)" title="Select for total">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M5 13l4 4L19 7"/></svg>
+                    </div>
+                    <span>${item.name} (${item.amount||''}${item.unit||''})</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
                     <span>${Math.round(item.kcal)} kcal</span>
+                    <button class="macro-expand-btn" onclick="toggleItemMacros(this)" title="Show macros"><i class="fas fa-chevron-down"></i></button>
                     <div class="item-actions">
                         <button onclick="editFoodItem(${item.idx})" title="Edit"><i class="fas fa-edit"></i></button>
                         <button onclick="deleteFoodItem(${item.idx})" title="Delete"><i class="fas fa-trash-alt"></i></button>
                     </div>
                 </div>
+            </div>
+            <div class="macro-detail-row">
+                <span class="macro-pill"><span class="dot protein"></span>P ${(item.protein||0).toFixed(1)}g</span>
+                <span class="macro-pill"><span class="dot carbs"></span>C ${(item.carbs||0).toFixed(1)}g</span>
+                <span class="macro-pill"><span class="dot fat"></span>F ${(item.fat||0).toFixed(1)}g</span>
+                <span class="macro-pill"><span class="dot fiber"></span>Fi ${(item.fiber||0).toFixed(1)}g</span>
+                <span class="macro-pill"><span class="dot sugar"></span>S ${(item.sugar||0).toFixed(1)}g</span>
             </div>`;
         });
 
@@ -510,6 +542,9 @@ function renderDashboard() {
         logDiv.innerHTML = html;
     }
     document.getElementById('logCount').innerText = dailyLog.length + ' items';
+    // Always resets #selectionTotalBar back to its closed/zero state,
+    // matching selectedLogIndices being cleared above.
+    updateSelectionBar();
 
     document.getElementById('dashDate').innerText = formatDate(today);
 
@@ -866,6 +901,73 @@ function toggleMealItems(btn) {
 // ============================================================
 //  TODAY'S FOOD ACTIONS
 // ============================================================
+
+// Toggles the little round macro-breakdown button on a standalone food
+// row (see the .macro-expand-btn markup in renderDashboard() above).
+// Same icon-swap pattern as toggleMealItems() above it, just targeting
+// the .macro-detail-row that immediately follows this item in the DOM
+// instead of a .meal-items block.
+function toggleItemMacros(btn) {
+    btn.classList.toggle('open');
+    btn.querySelector('i').classList.toggle('fa-chevron-down');
+    btn.querySelector('i').classList.toggle('fa-chevron-up');
+    const detailRow = btn.closest('.item').nextElementSibling;
+    if (detailRow) detailRow.classList.toggle('show');
+}
+
+// Checks/unchecks one standalone item for the combined total in
+// #selectionTotalBar. checkboxEl is the clicked .sel-check div itself
+// (passed as `this` from the inline onclick), so its own .item ancestor
+// gets the highlighted "selected" look without a separate DOM lookup.
+function toggleItemSelect(idx, checkboxEl) {
+    if (selectedLogIndices.has(idx)) {
+        selectedLogIndices.delete(idx);
+    } else {
+        selectedLogIndices.add(idx);
+    }
+    checkboxEl.closest('.item').classList.toggle('selected');
+    updateSelectionBar();
+}
+
+// Unchecks every selected item and closes #selectionTotalBar. Bound to
+// the "Clear" link inside the bar itself.
+function clearLogSelection() {
+    selectedLogIndices.clear();
+    document.querySelectorAll('#todayLog .item.selected').forEach(el => el.classList.remove('selected'));
+    updateSelectionBar();
+}
+
+// Recomputes the combined kcal + macro totals for whatever's currently
+// in selectedLogIndices and shows/hides #selectionTotalBar accordingly.
+// #selectionTotalBar is a normal (non-overlay) flex sibling of #todayLog
+// inside .food-card's flex column — see the SELECTION TOTAL BAR comment
+// in dashboard.css — so opening it here shrinks #todayLog to make room
+// instead of floating on top of it and covering an item.
+function updateSelectionBar() {
+    const bar = document.getElementById('selectionTotalBar');
+    const totals = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0 };
+    selectedLogIndices.forEach(idx => {
+        const item = dailyLog[idx];
+        if (!item) return;
+        totals.kcal += item.kcal || 0;
+        totals.protein += item.protein || 0;
+        totals.carbs += item.carbs || 0;
+        totals.fat += item.fat || 0;
+        totals.fiber += item.fiber || 0;
+        totals.sugar += item.sugar || 0;
+    });
+    document.getElementById('selCount').innerText = selectedLogIndices.size;
+    document.getElementById('selKcal').innerText = Math.round(totals.kcal);
+    document.getElementById('selMacros').innerHTML = selectedLogIndices.size > 0 ? `
+        <span class="macro-pill"><span class="dot protein"></span>P ${totals.protein.toFixed(1)}g</span>
+        <span class="macro-pill"><span class="dot carbs"></span>C ${totals.carbs.toFixed(1)}g</span>
+        <span class="macro-pill"><span class="dot fat"></span>F ${totals.fat.toFixed(1)}g</span>
+        <span class="macro-pill"><span class="dot fiber"></span>Fi ${totals.fiber.toFixed(1)}g</span>
+        <span class="macro-pill"><span class="dot sugar"></span>S ${totals.sugar.toFixed(1)}g</span>
+    ` : '';
+    bar.classList.toggle('show', selectedLogIndices.size > 0);
+}
+
 function editFoodItem(idx) {
     const item = dailyLog[idx];
     if (!item) return;
