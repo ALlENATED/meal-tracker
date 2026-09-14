@@ -882,7 +882,8 @@ function editFoodItem(idx) {
             mealName: item.name,
             mealIcon: item.mealIcon,
             editingLogIdx: idx,
-            initialAmount: item.amount
+            initialAmount: item.amount,
+            initialUnit: item.unit
         });
         return;
     }
@@ -1184,7 +1185,8 @@ function openPortionModalForMeal(mealIdx) {
         mealName: meal.name,
         mealIcon: meal.icon || '🍽️',
         editingLogIdx: null,
-        initialAmount: ''
+        initialAmount: '',
+        initialUnit: 'g'
     });
 }
 
@@ -1204,6 +1206,7 @@ function openPortionModal(state) {
     document.getElementById('portionRawSugar').innerText = state.rawTotals.sugar.toFixed(1) + 'g';
     document.getElementById('portionCookedWeight').innerText = state.cookedWeight + 'g';
     document.getElementById('portionAmountInput').value = state.initialAmount || '';
+    document.getElementById('portionUnitInput').value = state.initialUnit || 'g';
     updatePortionPreview();
     document.getElementById('portionModal').classList.add('show');
 }
@@ -1216,12 +1219,16 @@ function closePortionModal() {
 function updatePortionPreview() {
     if (!portionModalState) return;
     const amount = parseFloat(document.getElementById('portionAmountInput').value);
+    const unit = document.getElementById('portionUnitInput').value;
     const { rawTotals, cookedWeight } = portionModalState;
     const valid = isFinite(amount) && amount > 0 && cookedWeight > 0;
+    // g and ml are treated as equal here (same as everywhere else in this
+    // app — see parseAmount()'s comment), so the fraction math is identical
+    // either way; only the displayed unit label changes.
     const fraction = valid ? (amount / cookedWeight) : 0;
 
     document.getElementById('portionFractionLine').innerText = valid
-        ? `${amount}g ÷ ${cookedWeight}g = ${(fraction * 100).toFixed(1)}% of the meal`
+        ? `${amount}${unit} ÷ ${cookedWeight}g = ${(fraction * 100).toFixed(1)}% of the meal`
         : 'Enter your portion to see the math.';
 
     const scaled = {
@@ -1250,12 +1257,13 @@ function confirmPortionLog() {
         return;
     }
     updatePortionPreview();
+    const unit = document.getElementById('portionUnitInput').value;
     const { mealName, mealIcon, cookedWeight, rawTotals, editingLogIdx, lastScaled } = portionModalState;
     const entry = {
         name: mealName,
         mealIcon: mealIcon || '🍽️',
         amount,
-        unit: 'g',
+        unit,
         kcal: lastScaled.kcal,
         protein: lastScaled.protein,
         carbs: lastScaled.carbs,

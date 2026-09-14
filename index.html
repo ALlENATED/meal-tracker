@@ -472,9 +472,23 @@
                     <div class="portion-calc-line"><span>Sugar</span><span id="portionRawSugar">0g</span></div>
                     <div class="portion-calc-line total"><span>Total cooked weight</span><span id="portionCookedWeight">0g</span></div>
                 </div>
-                <div class="form-group">
-                    <label>Your portion (g)</label>
-                    <input type="number" id="portionAmountInput" step="1" min="1" oninput="updatePortionPreview()">
+                <div class="row-2">
+                    <div class="form-group">
+                        <label>Your portion</label>
+                        <input type="number" id="portionAmountInput" step="1" min="1" oninput="updatePortionPreview()">
+                    </div>
+                    <div class="form-group">
+                        <label>Unit</label>
+                        <!-- g and ml are treated the same in this app's macro math
+                             (see parseAmount() in shared/app-data-and-settings.js —
+                             this app has always assumed 1ml ≈ 1g), so picking ml
+                             here doesn't change the calculation below, only how the
+                             portion is labeled in the popup and in Today's log. -->
+                        <select id="portionUnitInput" onchange="updatePortionPreview()">
+                            <option value="g">g</option>
+                            <option value="ml">ml</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="portion-fraction-line" id="portionFractionLine">Enter your portion to see the math.</div>
                 <div class="portion-calc-block">
