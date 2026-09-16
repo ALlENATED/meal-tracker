@@ -495,6 +495,21 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    /* Explicit, even though hidden is the browser default for overflow-x:
+       per the CSS overflow spec, setting overflow-y to anything other than
+       visible (auto, here) silently forces the OTHER axis's computed value
+       to auto too, if it's left at its default of visible. That's a classic
+       "phantom" horizontal scrollbar — it only shows up on platforms with
+       classic, space-reserving scrollbars (most PC browsers), never on
+       phones/macOS (overlay scrollbars, so it never gets a visible track),
+       which is exactly the "fine on phone, wrong on PC" pattern reported.
+       All it takes to trigger it is content coming within a hair of the
+       card's width — e.g. the vertical scrollbar itself narrowing the
+       available space once the list is tall enough to need one. Pinning
+       overflow-x to hidden here stops it from ever appearing; the row
+       layout below (item-main has min-width:0 and wraps) already keeps
+       content from actually needing horizontal room. */
+    overflow-x: hidden;
     margin-bottom: 14px;
     padding-right: 4px;
 }
@@ -617,6 +632,9 @@
    makes #todayLog (flex:1) shrink to make room automatically. Because
    it's real layout space instead of something floating on top, it can
    never end up covering a food item the way an overlay/popup would.
+   Sized on the thinner side (padding/margins/pill sizing below) so it
+   reads as a compact strip instead of a second card squeezed in above
+   the buttons — confirmed against a live before/after mockup.
    ============================================================ */
 .selection-total-bar {
     flex-shrink: 0;
@@ -630,16 +648,17 @@
     border-radius: 12px;
     padding: 0 12px;
     font-size: 0.8rem;
-    transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease, margin-bottom 0.28s ease, padding 0.28s ease;
+    transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease, margin-bottom 0.28s ease, padding 0.28s ease, border-radius 0.28s ease;
 }
 .selection-total-bar.show {
     max-height: 140px;
     opacity: 1;
-    margin-top: 10px;
+    margin-top: 6px;
     /* Keeps a clear gap above .food-actions (Add food/Reset day) instead
        of the bar sitting flush against those buttons. */
-    margin-bottom: 12px;
-    padding: 9px 12px 11px;
+    margin-bottom: 14px;
+    padding: 5px 10px 6px;
+    border-radius: 10px;
 }
 .sel-bar-row1 {
     display: flex;
@@ -663,10 +682,23 @@
 .sel-bar-row2 {
     display: flex;
     flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 8px;
-    padding-top: 8px;
+    gap: 4px;
+    margin-top: 3px;
+    padding-top: 3px;
     border-top: 1px solid var(--border-light);
+}
+/* Selection bar's own macro pills read smaller than the per-item
+   macro-detail-row pills (below) — scoped to just #selMacros/.sel-bar-row2
+   so the per-item expand rows (macro-tap-target feature) are untouched;
+   this is specifically about "the element that shows the macros of the
+   items selected" sitting closer to the divider line, not those. */
+.sel-bar-row2 .macro-pill {
+    padding: 1px 6px;
+    font-size: 0.58rem;
+}
+.sel-bar-row2 .macro-pill .dot {
+    width: 5px;
+    height: 5px;
 }
 
 /* ============================================================
@@ -707,8 +739,15 @@
     background: var(--accent-soft);
     border-radius: 10px;
     padding-left: 8px;
-    padding-right: 8px;
-    margin: 0 -8px;
+    /* Right side bleeds only as far as .food-log's own padding-right (the
+       4px scrollbar gutter above), not the full 8px the left side bleeds
+       by — bleeding 8px here overshot .food-log's right edge by 4px, which
+       is exactly what was quietly forcing a horizontal scrollbar on
+       platforms with classic (space-reserving) scrollbars the moment an
+       item got selected. Matching the two removes the actual overflow,
+       instead of just hiding it. */
+    padding-right: 4px;
+    margin: 0 -4px 0 -8px;
 }
 .food-log .item.selected .sel-check {
     background: var(--accent);
