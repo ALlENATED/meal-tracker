@@ -476,8 +476,18 @@
        max-height:250px gave it (title + actions + padding take up the
        rest) — doesn't need to match the Dashboard card's height, since
        Weekly Chart sits under THAT card in its own column now instead of
-       waiting on this one. */
-    height: 380px;
+       waiting on this one.
+       The extra +100px on top of that original 380px is headroom for
+       #selectionTotalBar (see dashboard.js/index.html) to open without
+       squeezing #todayLog's flex:1 space down far enough to newly need
+       its own scrollbar — since #selectionTotalBar is a real flex
+       sibling (not an overlay), opening it always shrinks #todayLog by
+       its own height, so this card needs to be taller by roughly that
+       same amount for #todayLog to keep the room it already had. Sized
+       for the bar's actual rendered height (~72px) plus its top/bottom
+       margins, with a little slack for the macro-pill row wrapping to
+       two lines on a narrow phone. */
+    height: 480px;
     display: flex;
     flex-direction: column;
 }
@@ -614,17 +624,21 @@
     max-height: 0;
     opacity: 0;
     margin-top: 0;
+    margin-bottom: 0;
     background: var(--bg-input);
     border: 1px solid var(--border-light);
     border-radius: 12px;
     padding: 0 12px;
     font-size: 0.8rem;
-    transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease, padding 0.28s ease;
+    transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.28s ease, margin-bottom 0.28s ease, padding 0.28s ease;
 }
 .selection-total-bar.show {
     max-height: 140px;
     opacity: 1;
     margin-top: 10px;
+    /* Keeps a clear gap above .food-actions (Add food/Reset day) instead
+       of the bar sitting flush against those buttons. */
+    margin-bottom: 12px;
     padding: 9px 12px 11px;
 }
 .sel-bar-row1 {
