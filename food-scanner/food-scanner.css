@@ -1,0 +1,382 @@
+/* ============================================================
+   FOOD SCANNER STYLING — food-scanner.css
+   ============================================================
+   WHAT THIS FILE CONTROLS:
+     - the round camera "scan" button that sits next to the
+       ingredient search bar in the Add Food popup (Dashboard) AND
+       next to the Name field in the Add/Edit Ingredient popup
+       (Ingredients tab) — same button, two places, see
+       food-scanner/food-scanner.js for what it opens
+     - the #scanModal popup itself: the barcode camera view, the
+       manual barcode-entry fallback, the label-photo camera view,
+       and the results form (macro fields + Name + Category) shown
+       after either a barcode match or a label read
+
+   DEPENDS ON SHARED STYLING:
+     Uses CSS variables from shared/theme-and-layout.css (--accent,
+     --bg-input, --border-light, --under/--under-text, etc.) and the
+     shared .modal/.modal-header/.form-group/.row-2/.modal-actions/
+     .btn-primary/.btn-secondary look defined there — this file only
+     adds what's specific to scanning, it doesn't redefine those.
+
+   SAFE TO REWORK ALONE?
+   Yes, together with food-scanner/food-scanner.js and the marked
+   HTML blocks in index.html (the two scan-launch-btn buttons and
+   the #scanModal popup near the end of <body>).
+   ============================================================ */
+
+/* ---- the round camera button, next to the search bar / Name field ---- */
+.ingredient-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.ingredient-input-row > .searchable-select-wrap,
+.ingredient-input-row > input {
+    flex: 1;
+    min-width: 0;
+}
+.scan-launch-btn {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 14px rgba(45, 122, 255, 0.35);
+    transition: 0.15s;
+}
+.scan-launch-btn:hover {
+    transform: scale(1.05);
+}
+
+/* ---- #scanModal shell ---- */
+#scanModal .modal {
+    max-width: 460px;
+}
+/* .back-btn: a lighter counterpart to .modal-close, used inside #scanModal
+   to step back a screen instead of closing outright (its own onclick,
+   scanGoBack() in food-scanner.js, decides which — and closes the whole
+   popup when there's nowhere left to step back to). Generic enough to sit
+   in the shared modal-header row alongside .modal-close. */
+.back-btn {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 40px;
+    color: var(--text-primary);
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 14px;
+}
+.scan-screen {
+    display: none;
+}
+.scan-screen.show {
+    display: block;
+    animation: scanFadeIn 0.2s ease;
+}
+@keyframes scanFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- barcode step: html5-qrcode injects its own <video>+<canvas>
+   into #scanBarcodeReader — this just gives that box the app's own
+   rounded-corner treatment so it reads as part of the popup, not a
+   raw plugin widget. ---- */
+.scan-camera-wrap {
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0a0e16;
+    margin-bottom: 10px;
+    min-height: 220px;
+    position: relative;
+}
+.scan-camera-wrap video {
+    width: 100%;
+    display: block;
+}
+.scan-status-line {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 8px 0 14px;
+}
+.scan-status-line.scan-status-error {
+    color: var(--over-text);
+    font-weight: 600;
+}
+.scan-manual-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.scan-manual-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px;
+    border-radius: 40px;
+    border: 1px solid var(--border-light);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    outline: none;
+    font-family: inherit;
+}
+/* A plain .btn-secondary only gets its look from shared/theme-and-
+   layout.css when it sits inside .modal-actions — this button doesn't
+   (it's a manual-entry row, not a modal's action row), so it needs its
+   own explicit copy of that same look here rather than silently
+   falling back to an unstyled browser default button. */
+.scan-lookup-btn {
+    flex-shrink: 0;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    padding: 10px 20px;
+    border-radius: 40px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-family: inherit;
+}
+.scan-fallback-link {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background: none;
+    border: none;
+    padding: 6px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: inherit;
+}
+.scan-camera-error {
+    padding: 16px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* ---- label-photo step: a plain getUserMedia <video> we draw our
+   own viewfinder frame over (no third-party UI here, unlike the
+   barcode step above, so this keeps the fuller custom treatment). ---- */
+.scan-viewfinder {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0a0e16;
+    margin-bottom: 10px;
+}
+.scan-viewfinder video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+.scan-viewfinder canvas.captured-preview {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.scan-vf-frame {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 78%; height: 56%;
+    border: 2.5px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 0 2000px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+}
+.scan-vf-frame .corner {
+    position: absolute;
+    width: 18px; height: 18px;
+    border: 3px solid var(--accent);
+}
+.scan-vf-frame .corner.tl { top: -3px; left: -3px; border-right: none; border-bottom: none; border-top-left-radius: 8px; }
+.scan-vf-frame .corner.tr { top: -3px; right: -3px; border-left: none; border-bottom: none; border-top-right-radius: 8px; }
+.scan-vf-frame .corner.bl { bottom: -3px; left: -3px; border-right: none; border-top: none; border-bottom-left-radius: 8px; }
+.scan-vf-frame .corner.br { bottom: -3px; right: -3px; border-left: none; border-top: none; border-bottom-right-radius: 8px; }
+.scan-vf-status {
+    position: absolute;
+    bottom: 12px; left: 0; right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+    pointer-events: none;
+}
+.scan-lang-chip {
+    text-align: center;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    border-radius: 20px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
+}
+.scan-shutter-row {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 6px;
+}
+.scan-shutter-btn {
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    border: 4px solid rgba(120, 140, 170, 0.4);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+}
+.scan-shutter-btn:active { transform: scale(0.94); }
+.scan-shutter-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* ---- shared: match/status banners on the result screen ---- */
+.scan-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--under-text);
+    margin-bottom: 12px;
+}
+.scan-banner.warn { color: #b8860b; }
+.scan-banner .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+}
+.scan-banner.warn .dot { background: #f1a33c; }
+
+.scan-product-card {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    background: var(--bg-input);
+    border-radius: 16px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+.scan-product-card .thumb {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(145deg, #ffd97a, #ff9f4a);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+.scan-product-card .p-name {
+    font-weight: 700;
+    font-size: 0.88rem;
+}
+.scan-product-card .p-brand {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+.scan-source-badge {
+    display: inline-flex;
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: var(--under-text);
+    background: var(--under);
+    padding: 2px 9px;
+    border-radius: 20px;
+    margin-top: 3px;
+}
+
+/* ---- result form: per-100 macro fields, shared by both entry
+   points (Add food vs Add Ingredient) — see the row-3 layout below
+   for Kcal/Protein/Carbs and Fat/Fiber/Sugar. ---- */
+.scan-row-3 {
+    display: flex;
+    gap: 8px;
+}
+.scan-row-3 .form-group {
+    flex: 1;
+    min-width: 0;
+}
+.scan-row-3 .form-group input {
+    padding: 11px 10px;
+    font-size: 0.85rem;
+}
+.scan-macro-title {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--text-muted);
+    margin: 4px 0 8px;
+}
+.scan-macro-title .editable-tag {
+    text-transform: none;
+    font-weight: 600;
+}
+.scan-computed-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin: 8px 0 2px;
+}
+.scan-field-flagged input {
+    border-color: #f1a33c !important;
+}
+.scan-confidence-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 0.7rem;
+    color: #b8860b;
+    background: #fff8ea;
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-top: 10px;
+}
+body.dark .scan-confidence-note {
+    background: #2e2711;
+    color: #f1c76b;
+}
+.scan-category-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: var(--bg-input);
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 10px 0;
+}
+
+/* ---- lightweight inline spinner used for "Looking up..." /
+   "Reading label..." status text ---- */
+.scan-spinner {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border: 2px solid var(--border-light);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: scanSpin 0.7s linear infinite;
+    vertical-align: -2px;
+    margin-right: 6px;
+}
+@keyframes scanSpin {
+    to { transform: rotate(360deg); }
+}

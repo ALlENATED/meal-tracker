@@ -10,7 +10,10 @@
      - "End day" and the "Add for date" popup (switching which day
        you're logging food for, or deleting a whole day's log)
      - the "Add food" popup: searching ingredients, picking one,
-       loading a saved meal into today's log, and adding it
+       loading a saved meal into today's log, and adding it. Its
+       camera button hands off to food-scanner/food-scanner.js
+       instead (openScanModal('log')) — that's what fills in
+       selectedIngredient + this popup's fields when a scan is used
      - per-item macro breakdown (the small round button on each
        standalone food) and multi-select totals (the checkboxes +
        #selectionTotalBar) in today's food log — see SELECTION +

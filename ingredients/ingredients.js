@@ -7,7 +7,11 @@
      - the "Edit Category" / "New Category" popups (create, rename,
        change icon, delete a category)
      - the "Add/Edit Ingredient" popup (create, edit, delete a
-       single ingredient)
+       single ingredient). Its camera button hands off to
+       food-scanner/food-scanner.js instead (openScanModal('ingredient'))
+       — that's what fills in this popup's Name/macro fields when a
+       scan is used; saveIngredient() below still does the actual
+       creating/updating, unchanged
 
    DEPENDS ON OTHER FILES:
      - food-database/ingredient-list.js for CATEGORIES, CATEGORY_MAP,

@@ -65,6 +65,11 @@
     Saved Meals tab, the Save/Edit Meal popup    saved-meals/saved-meals.css
                                                   saved-meals/saved-meals.js
 
+    The camera "scan a package" button (in both  food-scanner/food-scanner.css
+    the Add Food popup and the Add/Edit           food-scanner/food-scanner.js
+    Ingredient popup) and its own #scanModal
+    popup — barcode lookup + label-photo OCR
+
     The actual list of foods (calories/macros)   food-database/ingredient-list.js
     — no logic, just data
 
@@ -80,6 +85,7 @@
     <link rel="stylesheet" href="weight-tracking/weight-tracking.css" />
     <link rel="stylesheet" href="ingredients/ingredients.css" />
     <link rel="stylesheet" href="saved-meals/saved-meals.css" />
+    <link rel="stylesheet" href="food-scanner/food-scanner.css" />
 </head>
 <body>
     <!-- ===== CLOUD SYNC: sign-in gate — shared/cloud-sync.js + shared/theme-and-layout.css.
@@ -430,9 +436,17 @@
                 </div>
                 <div class="form-group">
                     <label>Ingredient</label>
-                    <div class="searchable-select-wrap">
-                        <input type="text" id="ingredientSearchInput" placeholder="Click to search ingredients..." autocomplete="off" onfocus="showDropdown()" oninput="filterDropdown()">
-                        <div class="dropdown-list" id="dropdownList"></div>
+                    <!-- .ingredient-input-row + .scan-launch-btn — food-scanner/food-scanner.css
+                         and food-scanner/food-scanner.js. Scanning here only fills in
+                         selectedIngredient + this search box + Amount/Unit below, same as
+                         picking one from the dropdown — it doesn't touch your ingredient
+                         database. See openScanModal('log') / confirmScanResult(). -->
+                    <div class="ingredient-input-row">
+                        <div class="searchable-select-wrap">
+                            <input type="text" id="ingredientSearchInput" placeholder="Click to search ingredients..." autocomplete="off" onfocus="showDropdown()" oninput="filterDropdown()">
+                            <div class="dropdown-list" id="dropdownList"></div>
+                        </div>
+                        <button type="button" class="scan-launch-btn" onclick="openScanModal('log')" title="Scan a package"><i class="fas fa-camera"></i></button>
                     </div>
                 </div>
                 <div class="row-2">
@@ -811,7 +825,16 @@
                 </div>
                 <div class="form-group">
                     <label>Name</label>
-                    <input type="text" id="ingEditName" placeholder="e.g. Chicken breast, raw">
+                    <!-- .ingredient-input-row + .scan-launch-btn — food-scanner/food-scanner.css
+                         and food-scanner/food-scanner.js. Scanning here fills in Name + every
+                         macro field below (a NEW ingredient) but does not save anything itself —
+                         you still press this popup's own Save button, so rescanning while
+                         EDITING an existing ingredient correctly updates that same one instead
+                         of creating a duplicate. See openScanModal('ingredient') / confirmScanResult(). -->
+                    <div class="ingredient-input-row">
+                        <input type="text" id="ingEditName" placeholder="e.g. Chicken breast, raw">
+                        <button type="button" class="scan-launch-btn" onclick="openScanModal('ingredient')" title="Scan a package"><i class="fas fa-camera"></i></button>
+                    </div>
                 </div>
                 <div class="row-2">
                     <div class="form-group"><label>Kcal</label><input type="number" id="ingEditKcal" step="1" min="0"></div>
@@ -868,6 +891,125 @@
         </div>
         <!-- ===== END POPUP: New Category ===== -->
 
+        <!-- ===== POPUP: Scan a package — food-scanner/food-scanner.css + food-scanner/food-scanner.js.
+             Opened by either camera button above (Add Food's ingredient row, or Add/Edit
+             Ingredient's Name row) via openScanModal('log' | 'ingredient'). Sits on top of
+             whichever of those two popups opened it (same stacking as New Category opening
+             on top of Add/Edit Ingredient above) — closing this one reveals that popup again,
+             now filled in, still waiting on ITS OWN Add/Save button. ===== -->
+        <div class="modal-overlay" id="scanModal">
+            <div class="modal">
+                <div class="modal-header">
+                    <button class="back-btn" id="scanBackBtn" onclick="scanGoBack()">✕ Cancel</button>
+                    <button class="modal-close" onclick="closeScanModal()">&times;</button>
+                </div>
+
+                <!-- Screen 1: barcode camera (html5-qrcode takes over #scanBarcodeReader
+                     entirely — its own video + scan-region UI, so no custom overlay is
+                     drawn here the way the label-photo screen below has one). -->
+                <div class="scan-screen show" id="scanScreen_barcode">
+                    <div class="scan-camera-wrap">
+                        <div id="scanBarcodeReader"></div>
+                    </div>
+                    <div class="scan-status-line" id="scanBarcodeStatusLine">Point your camera at the barcode</div>
+                    <div class="scan-manual-row">
+                        <input type="text" id="scanManualBarcodeInput" inputmode="numeric" placeholder="Or type the barcode number..." onkeydown="if(event.key==='Enter') manualBarcodeLookup()">
+                        <button type="button" class="scan-lookup-btn" onclick="manualBarcodeLookup()">Look up</button>
+                    </div>
+                    <button type="button" class="scan-fallback-link" onclick="switchToLabelScan(null)">Can't scan it? Photograph the label instead →</button>
+                </div>
+
+                <!-- Screen 2 (fallback): photograph the Nutrition Facts panel directly and
+                     read it with OCR — see parseNutritionLabelText() in food-scanner.js for
+                     the English/Swedish label-term matching. -->
+                <div class="scan-screen" id="scanScreen_label">
+                    <div class="scan-banner warn" id="scanLabelBanner" style="display:none;">
+                        <span class="dot"></span> <span id="scanLabelBannerText"></span>
+                    </div>
+                    <div class="scan-viewfinder">
+                        <video id="scanLabelVideo" autoplay playsinline muted></video>
+                        <canvas id="scanCaptureCanvas" style="display:none;"></canvas>
+                        <div class="scan-vf-frame">
+                            <div class="corner tl"></div><div class="corner tr"></div>
+                            <div class="corner bl"></div><div class="corner br"></div>
+                        </div>
+                        <div class="scan-vf-status" id="scanLabelStatus">Align the Nutrition Facts panel in the frame</div>
+                    </div>
+                    <div class="scan-lang-chip">🇸🇪 Recognizes Swedish label terms: Energi, Fett, Kolhydrat, Protein, Fiber</div>
+                    <div class="scan-shutter-row">
+                        <button type="button" class="scan-shutter-btn" id="scanShutterBtn" onclick="captureLabel()" title="Capture"></button>
+                    </div>
+                </div>
+
+                <!-- Screen 3: result — same 6 macro fields either way (per 100g/ml); which
+                     extra fields show (Amount for logging vs Category for a new ingredient)
+                     depends on which popup opened the scanner (openScanModal's argument). -->
+                <div class="scan-screen" id="scanScreen_result">
+                    <div class="scan-banner" id="scanResultBanner"></div>
+                    <div class="scan-product-card" id="scanProductCard" style="display:none;">
+                        <div class="thumb">🛒</div>
+                        <div>
+                            <div class="p-name" id="scanProductName"></div>
+                            <div class="p-brand" id="scanProductBrand"></div>
+                            <div class="scan-source-badge" id="scanProductSource"></div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" id="scanResName" oninput="if(scanCtx==='log') updateScanComputedHint();">
+                    </div>
+                    <div class="row-2" id="scanAmountRow" style="display:none;">
+                        <div class="form-group">
+                            <label>Amount</label>
+                            <input type="number" id="scanResAmount" value="100" step="0.1" min="0.1" oninput="updateScanComputedHint()">
+                        </div>
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select id="scanResUnitLog" onchange="updateScanComputedHint()">
+                                <option value="g">g</option>
+                                <option value="ml">ml</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="scan-macro-title">Per 100g <span class="editable-tag">(editable)</span></div>
+                    <div class="scan-row-3">
+                        <div class="form-group"><label>Kcal</label><input type="number" id="scanResKcal" oninput="updateScanComputedHint()"></div>
+                        <div class="form-group"><label>Protein (g)</label><input type="number" id="scanResProtein" step="0.1" oninput="updateScanComputedHint()"></div>
+                        <div class="form-group"><label>Carbs (g)</label><input type="number" id="scanResCarbs" step="0.1" oninput="updateScanComputedHint()"></div>
+                    </div>
+                    <div class="scan-row-3">
+                        <div class="form-group"><label>Fat (g)</label><input type="number" id="scanResFat" step="0.1" oninput="updateScanComputedHint()"></div>
+                        <div class="form-group"><label>Fiber (g)</label><input type="number" id="scanResFiber" step="0.1" oninput="updateScanComputedHint()"></div>
+                        <div class="form-group"><label>Sugar (g)</label><input type="number" id="scanResSugar" step="0.1" oninput="updateScanComputedHint()"></div>
+                    </div>
+                    <div class="scan-computed-hint" id="scanComputedHint"></div>
+                    <div class="scan-confidence-note" id="scanConfidenceNote" style="display:none;"></div>
+                    <div class="row-2" id="scanUnitRowIngredient" style="display:none;">
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select id="scanResUnitIngredient">
+                                <option value="g">g</option>
+                                <option value="ml">ml</option>
+                                <option value="pc">pc</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="scan-category-hint" id="scanCategoryHint" style="display:none;">
+                        <span>👇</span> <span>Pick a category below — a scan can't know which of your own categories this belongs in.</span>
+                    </div>
+                    <div class="form-group" id="scanCategoryGroup" style="display:none;">
+                        <label>Category</label>
+                        <select id="scanResCategory"></select>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="btn-secondary" onclick="closeScanModal()">Cancel</button>
+                        <button class="btn-primary" onclick="confirmScanResult()"><i class="fas fa-check"></i> <span id="scanConfirmBtnLabel">Add</span></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- ===== END POPUP: Scan a package ===== -->
+
     </div>
 
     <!-- Scripts load in this order: food database first (pure data), then the
@@ -883,6 +1025,7 @@
     <script src="weight-tracking/weight-tracking.js"></script>
     <script src="ingredients/ingredients.js"></script>
     <script src="saved-meals/saved-meals.js"></script>
+    <script src="food-scanner/food-scanner.js"></script>
     <script src="shared/cloud-sync.js"></script>
 
     <!-- ============================================================
