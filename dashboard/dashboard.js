@@ -196,6 +196,17 @@ function renderDashboard() {
     const sug = dailyLog.reduce((s, i) => s + (i.sugar || 0), 0);
 
     dailyMacroHistory[today] = { calories: total, protein: p, carbs: c, fat: f, fiber: fib, sugar: sug };
+    // Today's kcal total has to be refreshed HERE, next to dailyMacroHistory
+    // above, and not only in saveState(). The Weekly Chart and the Calendar
+    // both read dailyHistory[date] (see "const weekKcal = week.map(...)"
+    // further down, and renderCalendar() in calendar/calendar.js) — but
+    // saveState() runs at the very END of this function, after both of those
+    // have already been drawn. So adding food used to redraw them from the
+    // PREVIOUS render's number, and today's bar only caught up on the next
+    // render (switching day, reopening the tab). Writing it here means
+    // everything below reads the current log. saveState() still writes the
+    // same value to localStorage at the end; setting it twice is harmless.
+    dailyHistory[today] = total;
 
     const remaining = Math.max(0, MACRO_TARGETS.calories - total);
     document.getElementById('calConsumed').innerText = Math.round(total);
