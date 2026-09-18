@@ -290,6 +290,32 @@ function saveState() {
 // weight, not per unit of volume. "g" and "ml" both already scale 1:1
 // (ml has always been treated as gram-equivalent here too — that's not
 // new), so they aren't listed and just fall through to the "|| 1" default.
+// The tile colour behind a category's icon. Looks up CATEGORY_TINTS
+// (food-database/ingredient-list.js) by name; any category not in there — i.e.
+// one the user created themselves — gets a stable colour derived from its name
+// so it still gets a tile instead of falling back to grey. Name-based rather
+// than stored on the object because CATEGORIES is replaced wholesale by the
+// user's saved copy from localStorage, which wouldn't have a new field.
+const CATEGORY_TINT_FALLBACKS = ['#2d7aff', '#e74c3c', '#f39c12', '#2ecc71',
+                                 '#9b59b6', '#16a085', '#e67e22', '#3498db'];
+function categoryTint(name) {
+    if (!name) return '#6b7f94';
+    if (typeof CATEGORY_TINTS !== 'undefined' && CATEGORY_TINTS[name]) return CATEGORY_TINTS[name];
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return CATEGORY_TINT_FALLBACKS[h % CATEGORY_TINT_FALLBACKS.length];
+}
+
+// Ready-to-drop-in markup for a category icon tile. Every place that shows a
+// category icon uses this so they can never drift apart. The '26' suffix is
+// hex alpha (~15%) — a translucent wash of the tint that works over both the
+// light and dark card backgrounds without needing two colour sets.
+function categoryIconHtml(cat) {
+    const icon = (cat && cat.icon) || '📁';
+    const tint = categoryTint(cat && cat.name);
+    return `<span class="cat-icon" style="background:${tint}26;">${icon}</span>`;
+}
+
 const GRAMS_PER_UNIT = { tbsp: 15, tsp: 5 };
 
 function parseAmount(ing, amount, unit) {
@@ -478,7 +504,7 @@ function renderCategorySettings() {
     const container = document.getElementById('categoryIconSettings');
     container.innerHTML = CATEGORIES.map((cat, idx) =>
         `<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--border-light);">
-            <span><span style="font-size:1.1rem;">${cat.icon||'📁'}</span> ${cat.name}</span>
+            <span style="display:flex;align-items:center;gap:8px;">${categoryIconHtml(cat)} ${cat.name}</span>
             <button onclick="openEditCategoryModal('${cat.name}')" style="background:none; border:none; cursor:pointer; color:var(--text-muted); padding:4px 8px; border-radius:8px; transition:0.15s;"><i class="fas fa-edit"></i></button>
         </div>`
     ).join('');
