@@ -293,9 +293,19 @@
                     <div class="weight-chart-wrap">
                         <canvas id="weightChart"></canvas>
                     </div>
+                    <!-- The two pills are wrapped in .trend-group so this overlay
+                         still has exactly TWO flex children and its existing
+                         justify-content:space-between keeps working unchanged.
+                         #weightTotalDisplay is the total-lost pill; tapping it
+                         switches what it counts back from (see
+                         toggleWeightTotalBasis() in weight-tracking.js). -->
                     <div class="weight-display-overlay" id="weightDisplayOverlay">
                         <span class="current-weight" id="currentWeightDisplay">-- <span class="unit">kg</span></span>
-                        <span class="trend neutral" id="weightTrendDisplay"><span class="arrow">—</span> no data</span>
+                        <span class="trend-group">
+                            <span class="trend neutral" id="weightTrendDisplay"><span class="arrow">—</span> no data</span>
+                            <button type="button" class="trend total" id="weightTotalDisplay"
+                                    onclick="toggleWeightTotalBasis()" style="display:none;"></button>
+                        </span>
                     </div>
                 </div>
                 <!-- ===== END WIDGET: Weight (small) ===== -->
@@ -933,7 +943,7 @@
                             <div class="corner tl"></div><div class="corner tr"></div>
                             <div class="corner bl"></div><div class="corner br"></div>
                         </div>
-                        <div class="scan-vf-status" id="scanLabelStatus">Align the Nutrition Facts panel in the frame</div>
+                        <div class="scan-vf-status" id="scanLabelStatus">Align the Nutrition Facts panel in the frame — hold steady, good light</div>
                     </div>
                     <div class="scan-lang-chip">🇸🇪 Recognizes Swedish label terms: Energi, Fett, Kolhydrat, Protein, Fiber</div>
                     <div class="scan-shutter-row">

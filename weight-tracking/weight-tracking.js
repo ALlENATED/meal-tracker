@@ -5,6 +5,15 @@
      - the small weight widget on the Dashboard tab: its mini
        sparkline chart and the "current weight + trend" display,
        and its "+ log" button
+     - the TWO pills in that display: "since last weigh-in" (which
+       existed already) and "total lost" (#weightTotalDisplay, added
+       beside it). Neither has a colour of its own — the since-last
+       pill is filled with the Weekly Chart's under/over colours
+       (chartColors) and the total pill with the Weight chart's line
+       colour (weightLineColor), so the pickers already in Settings
+       drive all three and no new picker was needed. Tapping the
+       total pill switches it between counting from your first
+       weigh-in and from your heaviest (toggleWeightTotalBasis()).
      - the full Weight Track tab: the list of every entry, editing
        or deleting an entry, and the full-size weight chart
 
@@ -12,7 +21,9 @@
      - shared/app-data-and-settings.js for: weightLog, today,
        formatDate(), weightLineColor (the user's chosen color for both
        weight charts below, set via the "Weight Chart Line Color" picker
-       in Settings)
+       in Settings), chartColors (the Weekly Chart's under/over colors,
+       reused by the since-last pill), weightTotalBasis + saveSettings()
+       (which baseline the total pill counts from, and persisting it)
      - dashboard/dashboard.js calls renderWeightChart() and
        renderWeightDisplay() (both defined here) every time the
        dashboard refreshes, and this file's addWeight()/addWeightFromTab()
@@ -28,36 +39,124 @@
 // ============================================================
 //  WEIGHT DISPLAY (compact overlay on the Dashboard widget)
 // ============================================================
+// Relative luminance, per the WCAG formula — used only by pillInk() below.
+function pillLuminance(hex) {
+    const h = String(hex || '').replace('#', '');
+    if (!/^[0-9a-f]{6}$/i.test(h)) return 1;
+    const ch = [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16) / 255);
+    const f = c => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+    return 0.2126 * f(ch[0]) + 0.7152 * f(ch[1]) + 0.0722 * f(ch[2]);
+}
+
+// Dark or white text for a pill filled with `hex`, whichever actually reads
+// better on it. This has to be computed rather than fixed: the Weekly Chart's
+// default colours are pale pastels (dark text needed) while the Weight line
+// colour defaults to a deep purple (white text needed), and both are free for
+// the user to change to anything in Settings.
+function pillInk(hex) {
+    const L = pillLuminance(hex);
+    const contrast = (a, b) => (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    return contrast(L, pillLuminance('#1a2639')) >= contrast(L, 1) ? '#1a2639' : '#ffffff';
+}
+
+// Paints a pill as a filled block of `color`, or clears the fill so it falls
+// back to the plain --bg-input pill defined in weight-tracking.css.
+function paintPill(el, color) {
+    if (color) {
+        el.classList.add('filled');
+        el.style.background = color;
+        el.style.color = pillInk(color);
+    } else {
+        el.classList.remove('filled');
+        el.style.background = '';
+        el.style.color = '';
+    }
+}
+
 function renderWeightDisplay() {
     const display = document.getElementById('currentWeightDisplay');
     const trendEl = document.getElementById('weightTrendDisplay');
+    const totalEl = document.getElementById('weightTotalDisplay');
+
     if (weightLog.length === 0) {
         display.innerHTML = '-- <span class="unit">kg</span>';
         trendEl.className = 'trend neutral';
         trendEl.innerHTML = '<span class="arrow">—</span> no data';
+        paintPill(trendEl, null);
+        if (totalEl) totalEl.style.display = 'none';
         return;
     }
     const sorted = [...weightLog].sort((a, b) => a.date.localeCompare(b.date));
     const latest = sorted[sorted.length - 1];
     display.innerHTML = `${latest.weight.toFixed(1)} <span class="unit">kg</span>`;
 
+    // ---- since last weigh-in (the pill that was already here) ----
+    // Now filled with the Weekly Chart's own colours instead of carrying its
+    // own: a loss uses the under/on-target colour, a gain uses the over-target
+    // colour, so it reads as the same language as the weekly bars and needs no
+    // colour picker of its own. "Stable" stays the plain unfilled pill, since
+    // it's neither under nor over.
     if (sorted.length >= 2) {
         const prev = sorted[sorted.length - 2];
         const diff = latest.weight - prev.weight;
         if (Math.abs(diff) < 0.05) {
             trendEl.className = 'trend neutral';
             trendEl.innerHTML = `<span class="arrow">—</span> stable`;
+            paintPill(trendEl, null);
         } else if (diff < 0) {
             trendEl.className = 'trend down';
             trendEl.innerHTML = `<span class="arrow">↓</span> ${Math.abs(diff).toFixed(1)} kg`;
+            paintPill(trendEl, chartColors.under);
         } else {
             trendEl.className = 'trend up';
             trendEl.innerHTML = `<span class="arrow">↑</span> ${diff.toFixed(1)} kg`;
+            paintPill(trendEl, chartColors.over);
         }
     } else {
         trendEl.className = 'trend neutral';
         trendEl.innerHTML = '<span class="arrow">—</span> first entry';
+        paintPill(trendEl, null);
     }
+
+    // ---- total lost ----
+    // Hidden below two weigh-ins: with one entry the baseline IS the latest
+    // reading, so the only honest number is 0.0, which is just noise.
+    if (!totalEl) return;
+    if (sorted.length < 2) {
+        totalEl.style.display = 'none';
+        return;
+    }
+    const weights = sorted.map(e => e.weight);
+    const baseline = weightTotalBasis === 'peak'
+        ? Math.max(...weights)
+        : weights[0];
+    const delta = latest.weight - baseline;      // negative = lost
+    const basisWord = weightTotalBasis === 'peak' ? 'since peak' : 'since start';
+
+    totalEl.style.display = '';
+    totalEl.title = `Total ${delta > 0 ? 'gained' : 'lost'} ${basisWord} `
+        + `(${baseline.toFixed(1)} kg) — tap to count from `
+        + (weightTotalBasis === 'peak' ? 'your first weigh-in instead' : 'your highest weigh-in instead');
+
+    if (Math.abs(delta) < 0.05) {
+        totalEl.innerHTML = '<span class="lbl">Σ</span> level';
+    } else {
+        const sign = delta > 0 ? '+' : '';
+        totalEl.innerHTML = `<span class="lbl">Σ</span> ${sign}${Math.abs(delta).toFixed(1)} kg`;
+    }
+    // Always the Weight chart's line colour, whichever direction it went —
+    // this pill is an identity ("your weight line, in total"), not a verdict,
+    // so it doesn't switch colour the way the since-last pill does.
+    paintPill(totalEl, weightLineColor);
+}
+
+// Tapping the total pill flips what it counts back to and remembers the
+// choice in tracker_settings (see weightTotalBasis in
+// shared/app-data-and-settings.js).
+function toggleWeightTotalBasis() {
+    weightTotalBasis = weightTotalBasis === 'peak' ? 'first' : 'peak';
+    saveSettings();
+    renderWeightDisplay();
 }
 
 // ============================================================

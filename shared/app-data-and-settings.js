@@ -105,6 +105,11 @@ let donutMainColor = '#2d7aff';
 // The Weight chart's line/fill color (both the small Dashboard widget and
 // the full Weight Track tab chart — see weight-tracking/weight-tracking.js)
 let weightLineColor = '#614ccd';
+// What the Weight widget's "total lost" pill counts back to — 'first' (your
+// earliest weigh-in) or 'peak' (the heaviest you ever logged). Tapping the
+// pill itself switches between them, see toggleWeightTotalBasis() in
+// weight-tracking/weight-tracking.js; it's saved here so the choice sticks.
+let weightTotalBasis = 'first';
 // Which macros the little Calendar widget marks with an "over target" dot
 // (calendar/calendar.js), each shown in that macro's own color — up to 4
 // at once, user-choosable in Settings via toggleCalendarOverMacro() below.
@@ -125,6 +130,7 @@ function loadSettings() {
             if (parsed.donutRemainingColor) donutRemainingColor = parsed.donutRemainingColor;
             if (parsed.donutMainColor) donutMainColor = parsed.donutMainColor;
             if (parsed.weightLineColor) weightLineColor = parsed.weightLineColor;
+            if (parsed.weightTotalBasis) weightTotalBasis = parsed.weightTotalBasis;
             if (parsed.userAccentColor) userAccentColor = parsed.userAccentColor;
             // calendarOverMacros replaces the old single-macro
             // calendarOverMacro setting — read the old field too so anyone
@@ -254,6 +260,7 @@ function saveSettings() {
         donutRemainingColor,
         donutMainColor,
         weightLineColor,
+        weightTotalBasis,
         userAccentColor,
         calendarOverMacros
     }));

@@ -246,3 +246,48 @@
         max-height: 180px;
     }
 }
+
+/* ============================================================
+   TOTAL-LOST PILL (added beside the existing since-last pill)
+   ============================================================
+   .trend-group wraps BOTH pills so .weight-display-overlay still
+   has exactly two flex children and its justify-content:space-between
+   behaves exactly as it did before this was added.
+
+   Neither pill has a hardcoded colour here on purpose. Both are
+   filled from Settings by renderWeightDisplay() in
+   weight-tracking.js — the since-last pill borrows the Weekly
+   Chart's under/over colours (chartColors) and the total pill uses
+   the Weight chart's line colour (weightLineColor), so changing
+   either picker recolours these too and no new picker is needed.
+   The text colour is chosen per-fill in JS rather than set here,
+   because the chart colours are pale pastels while the line colour
+   can be near-black — one fixed ink would be unreadable at one end
+   or the other.
+   ============================================================ */
+.weight-display-overlay .trend-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+}
+.weight-display-overlay .trend.total {
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    /* a filled pill doesn't want the outline the unfilled one has */
+    border-color: transparent;
+}
+.weight-display-overlay .trend.total .lbl {
+    font-weight: 600;
+    opacity: 0.75;
+}
+.weight-display-overlay .trend.total:hover {
+    filter: brightness(0.95);
+}
+/* Filled state, applied by JS whenever there's a real up/down to show.
+   The unfilled .neutral state (stable / no data / first entry) keeps the
+   plain --bg-input pill it has always had. */
+.weight-display-overlay .trend.filled {
+    border-color: transparent;
+}
