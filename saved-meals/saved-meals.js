@@ -302,8 +302,9 @@ function renderIngredientSelectionList(search) {
     let html = '';
     for (const cat of CATEGORIES) {
         if (grouped[cat.name]) {
+            const icon = cat.icon || '📁';
             html +=
-                `<div style="display:flex; align-items:center; gap:7px; font-size:0.6rem; text-transform:uppercase; font-weight:700; color:var(--text-muted); padding:5px 8px; background:var(--bg-input); border-radius:8px; margin:4px 0;">${categoryIconHtml(cat)} ${cat.name}</div>`;
+                `<div style="font-size:0.6rem; text-transform:uppercase; font-weight:700; color:var(--text-muted); padding:6px 8px; background:var(--bg-input); border-radius:8px; margin:4px 0;">${icon} ${cat.name}</div>`;
             grouped[cat.name].forEach(i => {
                 const isSelected = selectedIngredientForMeal && selectedIngredientForMeal.name === i
                     .name;

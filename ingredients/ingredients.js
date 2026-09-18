@@ -10,8 +10,7 @@
 
    WHO USES THIS DATA:
    Every other file in this app reads from the CATEGORIES,
-   CATEGORY_MAP, CATEGORY_TINTS, INGREDIENTS, MEAL_ICONS and
-   CAT_ICON_OPTIONS
+   CATEGORY_MAP, INGREDIENTS, MEAL_ICONS and CAT_ICON_OPTIONS
    variables below (they're defined with "let"/"const" so they
    become available to every other script on the page once this
    file has loaded — index.html loads this file first, before
@@ -20,8 +19,8 @@
    SAFE TO REWORK ALONE?
    Yes — if you just want to add/edit/remove foods or categories,
    this file is fully self-contained. Don't rename the variables
-   CATEGORIES, CATEGORY_MAP, CATEGORY_TINTS, INGREDIENTS,
-   MEAL_ICONS or CAT_ICON_OPTIONS, and keep each ingredient object using the
+   CATEGORIES, CATEGORY_MAP, INGREDIENTS, MEAL_ICONS or
+   CAT_ICON_OPTIONS, and keep each ingredient object using the
    same field names (name, kcal, protein, carbs, fat, fiber,
    sugar, category, and optionally unit) — other files depend on
    those exact field names.
@@ -37,7 +36,7 @@ let CATEGORIES = [
     { name: 'Fruits', icon: '🍎' },
     { name: 'Nuts & Seeds', icon: '🥜' },
     { name: 'Vegetables', icon: '🥬' },
-    { name: 'Oils & Fats', icon: '🧈' },
+    { name: 'Oils & Fats', icon: '🫒' },
     { name: 'Condiments', icon: '🧂' },
     { name: 'Sweeteners & Spices', icon: '🍯' },
     { name: 'ICA Specific', icon: '🛒' },
@@ -47,35 +46,6 @@ let CATEGORIES = [
 
 let CATEGORY_MAP = {};
 CATEGORIES.forEach(c => CATEGORY_MAP[c.name] = c);
-
-/* Tile colour for each category's icon (the soft square behind the emoji —
-   see .cat-icon in shared/theme-and-layout.css and categoryTint() in
-   shared/app-data-and-settings.js).
-
-   Keyed by NAME rather than stored on the category objects on purpose:
-   CATEGORIES gets overwritten by whatever is in localStorage when a user has
-   edited their categories, so a field added to the objects here would never
-   reach anyone who already has saved ones. Looking the colour up by name
-   works for existing users and new ones alike, and any category NOT listed
-   here (i.e. one the user made themselves) gets a colour derived from its
-   name instead. */
-const CATEGORY_TINTS = {
-    'Meat': '#e74c3c',
-    'Fish & Seafood': '#3aa6d8',
-    'Eggs': '#f1c40f',
-    'Dairy': '#f39c12',
-    'Breads': '#c8893a',
-    'Flours & Grains': '#b8963f',
-    'Fruits': '#e0516b',
-    'Nuts & Seeds': '#a9714b',
-    'Vegetables': '#2ecc71',
-    'Oils & Fats': '#8fa83f',
-    'Condiments': '#8e9aa8',
-    'Sweeteners & Spices': '#e8a33d',
-    'ICA Specific': '#e4572e',
-    'Beverages': '#9b59b6',
-    'Other': '#6b7f94'
-};
 
 let INGREDIENTS = [
     { name: 'Beef, raw', kcal: 250, protein: 26, carbs: 0, fat: 16, fiber: 0, sugar: 0, category: 'Meat' },
@@ -518,36 +488,20 @@ let INGREDIENTS = [
 
 /* Emoji icons offered when picking an icon for a saved meal */
 const MEAL_ICONS = [
-    '🍳', '🥞', '🧇', '🥯', '🥣', '☕', '🍵', '🥛', '🧃', '🍽️',
-    '🥗', '🍲', '🍛', '🍝', '🥘', '🍜', '🍣', '🥩', '🍗', '🥓',
-    '🧀', '🍕', '🌮', '🌯', '🥙', '🧆', '🍔', '🌭', '🥨', '🍖',
-    '🥪', '🍚', '🍤', '🥟', '🍠', '🍟', '🍿', '🍪', '🧁', '🍰',
-    '🥧', '🍦', '🍩', '🍭', '🍬', '🍫', '🍮', '🍡', '🥜', '🌰',
-    '🥤', '🍹', '🍺', '🍷', '🥂', '🥑'
+    '🍳', '🥞', '🧇', '🥯', '🥣', '☕', '🍵', '🥛', '🧃',
+    '🍽️', '🥗', '🍲', '🍛', '🍝', '🥘', '🍜', '🍣', '🥩', '🍗', '🥓', '🧀', '🍕', '🌮', '🌯', '🥙', '🧆', '🍔', '🌭', '🥨',
+    '🥩', '🍖', '🥪', '🍚', '🍤', '🥟', '🍠', '🥩',
+    '🍟', '🍿', '🍪', '🧁', '🍰', '🥧', '🍦', '🍩', '🍭', '🍬', '🍫', '🍮', '🍡', '🥜', '🌰',
+    '🥤', '🧋', '🍹', '🍺', '🍷', '🥂',
+    '🥑', '🧇', '🥞', '🧀', '🥓', '🥩', '🍗', '🍖', '🥪'
 ];
 
 /* Emoji icons offered when picking an icon for an ingredient category */
-const CAT_ICON_OPTIONS = [
-    // Meat
-    '🥩', '🍖', '🍗', '🥓', '🌭', '🍔', '🦃', '🐔', '🐖', '🐄', '🐑',
-    // Seafood
-    '🐟', '🐠', '🐡', '🦐', '🦞', '🦀', '🐙', '🦑', '🐚', '🍣', '🍤', '🎣',
-    // Dairy/eggs
-    '🥚', '🍳', '🧀', '🥛', '🧈', '🍦',
-    // Grains
-    '🍞', '🥖', '🥐', '🥯', '🌾', '🍚', '🍜', '🍝', '🥣', '🥞', '🧇', '🌽',
-    // Fruit
-    '🍎', '🍏', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝',
-    // Veg
-    '🥬', '🥦', '🥒', '🌶️', '🥕', '🧄', '🧅', '🥔', '🍠', '🍆', '🥑', '🍄', '🌱', '🌿', '☘️',
-    // Nuts
-    '🥜', '🌰',
-    // Sweet
-    '🍯', '🍬', '🍭', '🍫', '🍪', '🎂', '🧁', '🍰', '🥧', '🍩', '🍮', '🍨', '🍧', '🍡',
-    // Drinks
-    '🥤', '🧃', '☕', '🍵', '🥂', '🍷', '🍺', '🍹', '🧊', '💧', '🍶', '🧉',
-    // Prepared
-    '🍽️', '🥗', '🍲', '🍛', '🥘', '🍱', '🌮', '🌯', '🥙', '🧆', '🍕', '🥪', '🥟', '🍙', '🍘',
-    // Other
-    '📦', '🛒', '🧂', '🥄', '🍴', '🔥', '⭐', '❄️', '🏷️', '📋', '🧴', '📁'
+const CAT_ICON_OPTIONS = ['🍖', '🐟', '🥚', '🧀', '🍞', '🌾', '🍎', '🥜', '🥬', '🫒', '🧂', '🍯', '🛒', '🥤', '📦', '🥩', '🐓',
+    '🥛',
+    '🍚', '🌽', '🥕', '🧄', '🍋', '🍇', '🍉', '🍑', '🍒', '🥝', '🌶️', '🧅', '🧈', '🍗', '🥓', '🧊', '🍄', '🥦', '🥒', '🧄',
+    '🌿',
+    '🍆', '🥑', '🍠', '🥔', '🧅', '🥬', '🌽', '🍚', '🍞', '🥖', '🥯', '🧇', '🥞', '🍳', '🥓', '🥩', '🍗', '🍖', '🦐', '🐟',
+    '🐠',
+    '🐡', '🦞', '🦀', '🐙', '🦑', '🐚', '🧈', '🧀', '🥛', '🧃', '🧉', '🧋', '🍵', '☕', '🥤', '🧊'
 ];

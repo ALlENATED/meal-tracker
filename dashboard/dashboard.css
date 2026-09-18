@@ -920,12 +920,7 @@
     transition: 0.15s;
 }
 .dropdown-list .category-header .cat-icon {
-    /* the dropdown's rows are tighter than the Ingredients tab's, so the
-       shared .cat-icon tile is scaled down a little here */
-    font-size: 0.72rem;
-    width: 21px;
-    height: 21px;
-    border-radius: 7px;
+    font-size: 0.7rem;
 }
 .dropdown-list .category-header .cat-name {
     flex: 1;

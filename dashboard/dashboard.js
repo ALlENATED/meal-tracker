@@ -1181,9 +1181,10 @@ function renderDropdown(search) {
     for (const cat of CATEGORIES) {
         const items = grouped[cat.name];
         if (!items) continue;
+        const icon = cat.icon || '📁';
         const isOpen = isSearching || !!dropdownExpandedCategories[cat.name];
         html += `<div class="category-header" onclick="toggleDropdownCategory('${cat.name}')">
-            ${categoryIconHtml(cat)}
+            <span class="cat-icon">${icon}</span>
             <span class="cat-name">${cat.name}</span>
             <span class="cat-count">${items.length}</span>
             <i class="fas ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} cat-chevron"></i>
