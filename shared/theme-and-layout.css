@@ -808,3 +808,37 @@ body {
         padding: 8px 16px;
     }
 }
+/* ============================================================
+   CATEGORY ICON TILE (.cat-icon)
+   ============================================================
+   The soft coloured square a category's emoji sits on, used
+   everywhere a category is listed: the Ingredients tab headers,
+   the Add Food dropdown's group headers, the ingredient picker
+   inside Save/Edit Meal, and the category list in Settings.
+
+   Lives here rather than in one widget's stylesheet because
+   several widgets share the class, and they should never drift
+   apart. The tint itself is NOT set here — it's applied inline
+   by categoryIconHtml() in shared/app-data-and-settings.js,
+   which looks the colour up per category, so a category the user
+   invents still gets its own tile.
+
+   The two native <select> dropdowns that list categories (the
+   category field in Add/Edit Ingredient, and the same field in
+   the food scanner) still show a bare emoji: <option> text can't
+   carry markup, so there's nothing to tile there.
+   ============================================================ */
+.cat-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 9px;
+    flex-shrink: 0;
+    font-size: 0.9rem;
+    line-height: 1;
+    /* background is set inline per category — this is only the fallback
+       for anything rendered before the tint is known */
+    background: var(--bg-input);
+}

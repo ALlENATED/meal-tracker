@@ -172,7 +172,8 @@
     gap: 10px;
 }
 .category-section .cat-title .cat-icon {
-    font-size: 1rem;
+    /* sized to sit inside the shared .cat-icon tile (shared/theme-and-layout.css) */
+    font-size: 0.92rem;
 }
 .category-section .cat-title .cat-actions {
     margin-left: auto;
