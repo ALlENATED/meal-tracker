@@ -89,10 +89,6 @@ function openEditMealModal(idx) {
 }
 
 function openSaveMealFromCurrentLog() {
-    if (dailyLog.length === 0) {
-        alert('No foods to save. Add some food first!');
-        return;
-    }
     editingMealIndex = null;
     document.getElementById('mealModalTitle').innerText = 'Save Meal';
     document.getElementById('mealNameInput').value = '';
