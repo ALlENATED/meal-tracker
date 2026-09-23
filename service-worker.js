@@ -97,6 +97,13 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
     if (event.request.method !== 'GET') return;
 
+    // Only handle requests for this app's own files. Cross-origin requests
+    // (Firestore's realtime Listen channel, Firebase Auth, etc.) must be
+    // left completely alone — proxying a streaming/long-polling request
+    // through the service worker's fetch()/clone() pipeline breaks it,
+    // which is what caused Firestore sync errors in the console.
+    if (event.request.url.indexOf(self.location.origin) !== 0) return;
+
     event.respondWith(
         fetch(event.request).then(function (response) {
             if (response && response.ok && event.request.url.indexOf(self.location.origin) === 0) {
