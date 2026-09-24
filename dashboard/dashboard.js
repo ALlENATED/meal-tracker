@@ -1229,7 +1229,8 @@ function selectIngredient(name) {
 let modalSavedMealsExpandedGroups = {};
 
 function toggleModalSavedMealsGroup(key) {
-    modalSavedMealsExpandedGroups[key] = !modalSavedMealsExpandedGroups[key];
+    const currentlyOpen = modalSavedMealsExpandedGroups[key] !== false;
+    modalSavedMealsExpandedGroups[key] = !currentlyOpen;
     renderModalSavedMeals();
 }
 
@@ -1277,7 +1278,13 @@ function renderModalSavedMeals() {
     const renderSection = (key, label, icon) => {
         const idxs = byGroup[key];
         if (!idxs) return;
-        const isOpen = !!modalSavedMealsExpandedGroups[key];
+        // Defaults to OPEN (unlike the ingredient dropdown's collapse-by-
+        // default) — the point of this picker is quick access to meals you
+        // already have, so hiding them behind a closed header by default
+        // would work against that. Only explicitly collapsing a section
+        // (toggleModalSavedMealsGroup) closes it, and that choice persists
+        // across re-opening this popup.
+        const isOpen = modalSavedMealsExpandedGroups[key] !== false;
         html += `<div class="sm-group-header" onclick="toggleModalSavedMealsGroup('${key}')">
             <span>${icon}</span>
             <span>${label}</span>
