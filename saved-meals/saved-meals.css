@@ -29,6 +29,7 @@
     margin-top: 12px;
 }
 .saved-meal-card {
+    position: relative;
     background: var(--bg-card);
     backdrop-filter: blur(8px);
     border: 1px solid var(--border-light);
@@ -39,6 +40,101 @@
     transition: 0.25s ease;
     display: flex;
     flex-direction: column;
+}
+/* Delete button on each card — quickDeleteMeal() in saved-meals.js.
+   event.stopPropagation() on its onclick is what stops this from also
+   triggering the card's own "open to edit" click underneath it. */
+.saved-meal-delete-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--border-light);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: 0.15s;
+    z-index: 2;
+}
+.saved-meal-delete-btn:hover {
+    background: #e74c3c;
+    color: #fff;
+    border-color: #e74c3c;
+}
+
+/* "All / [group] / Ungrouped" filter row above the Saved Meals grid —
+   renderSavedMealsFilterPills() in saved-meals.js. */
+.meal-filter-pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.meal-filter-pill {
+    background: var(--bg-input);
+    border: 1px solid var(--border-light);
+    border-radius: 30px;
+    padding: 6px 16px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-primary);
+    transition: 0.15s;
+}
+.meal-filter-pill.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+}
+
+/* Group section headers when the Saved Meals tab is showing "All" —
+   renderSavedMeals() in saved-meals.js. */
+.saved-meal-list .meal-group-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin: 18px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
+}
+.saved-meal-list .meal-group-section-header:first-child {
+    margin-top: 0;
+}
+.saved-meal-list .meal-group-section-header .grp-icon {
+    font-size: 1rem;
+}
+.saved-meal-list .meal-group-section-header .grp-count {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    background: var(--bg-input);
+    padding: 1px 10px;
+    border-radius: 20px;
+    text-transform: none;
+    font-weight: 600;
+}
+
+/* Rows inside the Manage Groups popup (#mealGroupsManageList) —
+   renderMealGroupsManageList() in saved-meals.js. */
+.meal-group-manage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.9rem;
+}
+.meal-group-manage-row:last-child {
+    border-bottom: none;
 }
 .saved-meal-card .meal-pic {
     width: 100%;

@@ -1117,6 +1117,12 @@ function openAddFoodModal() {
     document.getElementById('modalUnit').value = 'g';
     selectedIngredient = null;
     document.getElementById('dropdownList').classList.remove('show');
+    // Only the typed search resets on open — which meal-group sections are
+    // expanded is left as-is, same reasoning as dropdownExpandedCategories
+    // above (re-opening this popup to load a second meal from the group you
+    // just used shouldn't collapse it again).
+    const smSearch = document.getElementById('modalSavedMealsSearch');
+    if (smSearch) smSearch.value = '';
     renderModalSavedMeals();
 }
 
@@ -1215,17 +1221,77 @@ function selectIngredient(name) {
     }
 }
 
+// Which meal-group sections are expanded in the "Load saved meal" browse
+// view here — same collapsed-by-default idea as dropdownExpandedCategories
+// above, and persists across re-opening Add Food for the same reason.
+// Keyed by group id, plus the fixed key '__ungrouped' for meals with no
+// group.
+let modalSavedMealsExpandedGroups = {};
+
+function toggleModalSavedMealsGroup(key) {
+    modalSavedMealsExpandedGroups[key] = !modalSavedMealsExpandedGroups[key];
+    renderModalSavedMeals();
+}
+
 function renderModalSavedMeals() {
-    const grid = document.getElementById('modalSavedMealsGrid');
+    const container = document.getElementById('modalSavedMealsGrid');
+    const searchInput = document.getElementById('modalSavedMealsSearch');
+    const search = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
     if (savedMeals.length === 0) {
-        grid.innerHTML = '<span style="font-size:0.7rem; color:var(--text-muted);">No saved meals yet</span>';
+        container.innerHTML = '<span style="font-size:0.7rem; color:var(--text-muted);">No saved meals yet</span>';
         return;
     }
-    grid.innerHTML = savedMeals.map((m, idx) => {
+
+    const smButtonHtml = (m, idx) => {
         const totalKcal = m.items.reduce((s, i) => s + i.kcal, 0);
         const icon = m.icon || '🍽️';
         return `<button onclick="loadSavedMealFromModal(${idx})">${icon} ${m.name} (${Math.round(totalKcal)} kcal)</button>`;
-    }).join('');
+    };
+
+    // Typing a name shows a flat, matching-only list regardless of group —
+    // the whole point of typing is to jump straight to a meal. Clearing
+    // the search goes back to the grouped browse view below.
+    if (search) {
+        const filtered = savedMeals
+            .map((m, idx) => ({ m, idx }))
+            .filter(({ m }) => m.name.toLowerCase().includes(search));
+        container.innerHTML = filtered.length === 0
+            ? '<span style="font-size:0.7rem; color:var(--text-muted);">No matching meals</span>'
+            : `<div class="sm-grid">${filtered.map(({ m, idx }) => smButtonHtml(m, idx)).join('')}</div>`;
+        return;
+    }
+
+    // Browse view: one collapsible section per meal group (in the order
+    // they were created), plus a final "Ungrouped" section — same
+    // collapsed-by-default pattern as the ingredient dropdown above, so
+    // scanning this picker doesn't mean scrolling past every saved meal
+    // at once.
+    const byGroup = {};
+    savedMeals.forEach((m, idx) => {
+        const key = m.groupId || '__ungrouped';
+        (byGroup[key] = byGroup[key] || []).push(idx);
+    });
+
+    let html = '';
+    const renderSection = (key, label, icon) => {
+        const idxs = byGroup[key];
+        if (!idxs) return;
+        const isOpen = !!modalSavedMealsExpandedGroups[key];
+        html += `<div class="sm-group-header" onclick="toggleModalSavedMealsGroup('${key}')">
+            <span>${icon}</span>
+            <span>${label}</span>
+            <span class="grp-count">${idxs.length}</span>
+            <i class="fas ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} grp-chevron"></i>
+        </div>`;
+        if (isOpen) {
+            html += `<div class="sm-grid">${idxs.map(idx => smButtonHtml(savedMeals[idx], idx)).join('')}</div>`;
+        }
+    };
+    mealGroups.forEach(g => renderSection(g.id, g.name, g.icon || '🍽️'));
+    renderSection('__ungrouped', 'Ungrouped', '🍽️');
+
+    container.innerHTML = html || '<span style="font-size:0.7rem; color:var(--text-muted);">No saved meals yet</span>';
 }
 
 function loadSavedMealFromModal(idx) {

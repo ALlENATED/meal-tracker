@@ -68,6 +68,17 @@ let dailyHistory = JSON.parse(localStorage.getItem('dailyHistory')) || {};
 let dailyMacroHistory = JSON.parse(localStorage.getItem('dailyMacroHistory')) || {};
 let weightLog = JSON.parse(localStorage.getItem('weightLog')) || [];
 let savedMeals = JSON.parse(localStorage.getItem('savedMeals')) || [];
+// Groups for organizing saved meals (Breakfast, Snack, Dinner, Dessert...) —
+// see saved-meals.js for the Manage Groups popup and how a meal's own
+// `groupId` (added to each entry in `savedMeals`) links back to one of
+// these by its `id`. A meal with no groupId (or one pointing at a group
+// that's since been deleted) is simply shown as "Ungrouped".
+let mealGroups = JSON.parse(localStorage.getItem('mealGroups')) || [];
+let editingGroupId = null;
+let selectedGroupIcon = '🍽️';
+// Which meal group the Saved Meals tab is currently filtered to: 'all',
+// 'ungrouped', or a specific group's id — see renderSavedMeals().
+let savedMealsActiveFilter = 'all';
 let selectedIngredient = null;
 let calendarViewDate = new Date();
 let selectedMealIcon = '🍽️';
@@ -278,6 +289,7 @@ function saveState() {
     localStorage.setItem('dailyHistory', JSON.stringify(dailyHistory));
     localStorage.setItem('weightLog', JSON.stringify(weightLog));
     localStorage.setItem('savedMeals', JSON.stringify(savedMeals));
+    localStorage.setItem('mealGroups', JSON.stringify(mealGroups));
     localStorage.setItem('dailyMacroHistory', JSON.stringify(dailyMacroHistory));
     saveIngredients();
     saveSettings();
